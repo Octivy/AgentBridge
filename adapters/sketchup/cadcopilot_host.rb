@@ -266,32 +266,27 @@ module AgentBridgeHost
     puts "AGENTBRIDGE_SKETCHUP_HOST_READY http://127.0.0.1:#{actual_port} #{token}"
     loop do
       client = server.accept
-      Thread.new(client, token) { |socket, t| handle_connection(socket, t) }
+      begin
+        handle_connection(client, token)
+      rescue StandardError
+        nil
+      end
     end
   ensure
     server.close rescue nil
   end
 end
 
-# Auto-start the host when this file is loaded inside SketchUp (copy into
-# %APPDATA%\SketchUp\SketchUp <ver>\SketchUp\Plugins\ and restart SketchUp).
-# The host runs in a background thread so the SketchUp UI never blocks.
+# SketchUp's embedded Ruby does not schedule background threads, so the host
+# must run on the main thread. Start it from the Ruby console:
+#
+#   load 'H:/codex/AgentBridge/adapters/sketchup/cadcopilot_host.rb'
+#   AgentBridgeHost.start
+#
+# The console will stay busy while the host serves requests (this is expected).
 MARKER_DIR = File.join(ENV["LOCALAPPDATA"] || ENV["APPDATA"] || Dir.home, "AgentBridge")
 begin
   FileUtils.mkdir_p(MARKER_DIR)
   File.write(File.join(MARKER_DIR, "sketchup-plugin-loaded.txt"), Time.now.utc.iso8601)
 rescue StandardError
-end
-
-if defined?(Sketchup) && defined?(UI)
-  Thread.new do
-    begin
-      AgentBridgeHost.start
-    rescue StandardError => exc
-      begin
-        File.write(File.join(MARKER_DIR, "sketchup-host-error.txt"), exc.full_message)
-      rescue StandardError
-      end
-    end
-  end
 end
