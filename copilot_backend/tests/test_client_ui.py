@@ -15,8 +15,9 @@ class TestClientUi:
     def test_ui_page_is_served(self):
         response = client.get("/ui")
         assert response.status_code == 200
-        assert "AgentBridge 客户端" in response.text
-        assert "软件宿主" in response.text
+        assert 'id="software"' in response.text
+        assert 'data-section="software"' in response.text
+        assert "config-form" in response.text
 
     def test_hosts_endpoint_shape(self):
         response = client.get("/hosts")

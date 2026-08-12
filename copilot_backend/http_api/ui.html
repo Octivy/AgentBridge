@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AgentBridge 客户端</title>
+  <title>AgentBridge 桥接控制台</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -11,133 +11,485 @@
       margin: 0; font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
       background: #12141a; color: #e6e8ee; padding: 20px;
     }
-    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
     h1 { font-size: 20px; margin: 0; }
     #health { color: #9aa3b2; font-size: 13px; }
-    button {
+    button, .btn {
       background: #2b6de8; color: #fff; border: 0; border-radius: 6px;
       padding: 7px 14px; cursor: pointer; font-size: 13px;
     }
-    button:hover { background: #3b7df8; }
+    button:hover, .btn:hover { background: #3b7df8; }
+    button.ghost { background: #232a3a; color: #c9d1de; }
+    button.ghost:hover { background: #2c3446; }
+    button.danger { background: #8c2f2f; }
+    button.danger:hover { background: #a63b3b; }
+    button.sm { padding: 4px 10px; font-size: 12px; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    nav.tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+    nav.tabs button {
+      background: transparent; color: #9aa3b2; border: 1px solid #262c3a;
+      border-radius: 999px; padding: 6px 16px; font-size: 13px;
+    }
+    nav.tabs button.active { background: #1f3a6e; color: #fff; border-color: #2b6de8; }
     main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    main.one { grid-template-columns: 1fr; }
+    @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
     section {
       background: #1a1e28; border: 1px solid #262c3a; border-radius: 10px;
       padding: 14px; min-height: 120px;
     }
     h2 { font-size: 14px; margin: 0 0 10px; color: #c9d1de; }
-    #chat { grid-column: 1 / -1; }
+    .hidden { display: none; }
     .empty { color: #7d8798; font-size: 13px; }
-    .host { padding: 8px 0; border-bottom: 1px solid #262c3a; }
-    .host:last-child { border-bottom: 0; }
-    .host-title { font-weight: 600; }
-    .host-meta { color: #9aa3b2; font-size: 12px; margin-top: 2px; }
     .badge { border-radius: 4px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
     .badge.ok { background: #1d5c3a; color: #8ee6b0; }
     .badge.err { background: #5c1d1d; color: #f0a3a3; }
+    .badge.warn { background: #5c4a1d; color: #f5d28e; }
+    .badge.off { background: #2a3040; color: #7d8798; }
     .chip {
       display: inline-block; background: #232a3a; border-radius: 6px;
       padding: 3px 9px; margin: 0 6px 6px 0; font-size: 12px; font-family: Consolas, monospace;
     }
+    .card {
+      background: #171b24; border: 1px solid #262c3a; border-radius: 10px;
+      padding: 12px; margin-bottom: 12px;
+    }
+    .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .card-title { font-weight: 600; font-size: 14px; }
+    .card-meta { color: #9aa3b2; font-size: 12px; margin-top: 4px; }
+    .card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+    label { display: block; font-size: 12px; color: #9aa3b2; margin: 8px 0 3px; }
+    input, textarea, select {
+      width: 100%; background: #12141a; color: #e6e8ee; border: 1px solid #262c3a;
+      border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: inherit;
+    }
+    input:focus, textarea:focus { outline: 1px solid #2b6de8; }
+    textarea { resize: vertical; min-height: 52px; font-family: Consolas, monospace; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .check { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; }
+    .check input { width: auto; }
     #messages {
-      height: 220px; overflow-y: auto; border: 1px solid #262c3a;
+      height: 240px; overflow-y: auto; border: 1px solid #262c3a;
       border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 13px; white-space: pre-wrap;
     }
     .msg { margin-bottom: 8px; }
     .msg.user { color: #9fc6ff; }
     form { display: flex; gap: 8px; }
-    input {
-      flex: 1; background: #12141a; color: #e6e8ee; border: 1px solid #262c3a;
-      border-radius: 6px; padding: 8px 10px;
+    .error-line { color: #f0a3a3; font-size: 12px; margin-top: 6px; min-height: 16px; }
+    pre.code {
+      background: #12141a; border: 1px solid #262c3a; border-radius: 8px;
+      padding: 10px; font-size: 12px; overflow: auto; white-space: pre-wrap;
     }
-    input:focus { outline: 1px solid #2b6de8; }
   </style>
 </head>
 <body>
   <header>
-    <h1>AgentBridge 客户端</h1>
+    <h1>AgentBridge 桥接控制台</h1>
     <span id="health">正在连接 backend…</span>
-    <button id="refresh">刷新宿主</button>
+    <button id="refresh">刷新</button>
   </header>
-  <main>
-    <section id="hosts">
-      <h2>软件宿主</h2>
-      <div id="host-list">加载中…</div>
+
+  <nav class="tabs" id="tabs">
+    <button data-section="overview" class="active">总览</button>
+    <button data-section="software">软件配置</button>
+    <button data-section="monitor">连接监控</button>
+    <button data-section="agents">Agent 接入</button>
+    <button data-section="tasks">任务交付</button>
+  </nav>
+
+  <!-- 总览 -->
+  <main id="overview" class="one">
+    <section>
+      <h2>运行总览</h2>
+      <div id="overview-body">加载中…</div>
     </section>
-    <section id="tools">
-      <h2>Agent 工具</h2>
-      <div id="tool-list">加载中…</div>
-    </section>
-    <section id="chat">
+    <section>
       <h2>对话</h2>
       <div id="messages"></div>
       <form id="chat-form">
-        <input id="chat-input" placeholder="输入问题，例如：帮我总结当前 Blender 场景" autocomplete="off">
+        <input id="chat-input" placeholder="输入需求，例如：帮我汇总当前 Blender 场景" autocomplete="off">
         <button type="submit">发送</button>
       </form>
     </section>
   </main>
+
+  <!-- 软件配置 -->
+  <main id="software" class="hidden">
+    <section>
+      <h2>软件（Host 适配器）</h2>
+      <div id="config-list">加载中…</div>
+    </section>
+    <section>
+      <h2 id="form-title">新增软件</h2>
+      <form id="config-form">
+        <div class="grid2">
+          <div>
+            <label>标识 host_id</label>
+            <input id="f-host-id" placeholder="例如 blender">
+          </div>
+          <div>
+            <label>名称</label>
+            <input id="f-name" placeholder="Blender">
+          </div>
+          <div>
+            <label>类型 host_kind</label>
+            <input id="f-host-kind" placeholder="blender">
+          </div>
+          <div>
+            <label>产品</label>
+            <input id="f-product" placeholder="Blender">
+          </div>
+          <div>
+            <label>启动命令</label>
+            <input id="f-command" placeholder="powershell 或绝对路径">
+          </div>
+          <div>
+            <label>工作目录 cwd</label>
+            <input id="f-cwd" placeholder="H:\codex\AgentBridge">
+          </div>
+        </div>
+        <label>启动参数（每行一个）</label>
+        <textarea id="f-args" placeholder="-NoProfile&#10;-File&#10;scripts\start-hostmcp.ps1"></textarea>
+        <div class="check">
+          <input type="checkbox" id="f-enabled" checked>
+          <label for="f-enabled" style="margin:0">启用</label>
+          <input type="checkbox" id="f-auto-start">
+          <label for="f-auto-start" style="margin:0">客户端启动时自动拉起</label>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button type="submit">保存</button>
+          <button type="button" class="ghost hidden" id="btn-cancel-edit">取消编辑</button>
+        </div>
+        <div class="error-line" id="form-error"></div>
+      </form>
+    </section>
+  </main>
+
+  <!-- 连接监控 -->
+  <main id="monitor" class="hidden">
+    <section>
+      <h2>已注册宿主（Host Adapter Contract）</h2>
+      <div id="host-list">加载中…</div>
+      <h2 style="margin-top:16px">Agent 工具</h2>
+      <div id="tool-list">加载中…</div>
+      <h2 style="margin-top:16px">注册错误</h2>
+      <div id="error-list" class="empty">无</div>
+    </section>
+  </main>
+
+  <!-- Agent 接入 -->
+  <main id="agents" class="hidden">
+    <section>
+      <h2>Agent 接入（MCP）</h2>
+      <div id="mcp-servers" class="card-meta">加载中…</div>
+      <div class="card-actions" style="margin:10px 0">
+        <button id="btn-write-codex">写入 Codex 配置（~/.codex/config.toml）</button>
+        <button id="btn-write-claude" class="ghost">写入 .mcp.json（项目根目录）</button>
+      </div>
+      <div class="error-line" id="mcp-status"></div>
+      <h2 style="margin-top:14px">Codex 配置预览（写入内容）</h2>
+      <pre class="code" id="mcp-preview">加载中…</pre>
+    </section>
+  </main>
+
+  <!-- 任务交付 -->
+  <main id="tasks" class="hidden">
+    <section id="agent-task-section">
+      <h2>运行 Agent 任务</h2>
+      <div class="grid2">
+        <div>
+          <label>需求</label>
+          <textarea id="at-message" placeholder="例如：在 Blender 里创建一个边长 1 的球体并渲染截图"></textarea>
+        </div>
+        <div>
+          <label>工具范围</label>
+          <select id="at-scope">
+            <option value="hosts">宿主工具（hosts）</option>
+            <option value="cadmcp">AutoCAD（cadmcp）</option>
+            <option value="all">全部（all）</option>
+          </select>
+          <label>批准模式</label>
+          <select id="at-approval">
+            <option value="full">全自动批准（full）</option>
+            <option value="annotate">需要确认（annotate）</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="btn-run-task">运行任务</button>
+      </div>
+      <div class="error-line" id="at-error"></div>
+      <div id="at-result" class="hidden">
+        <h2 style="margin-top:12px">任务结果</h2>
+        <div id="at-summary" class="card-meta"></div>
+        <div id="at-tools" class="card-meta" style="margin-top:6px"></div>
+        <pre class="code" id="at-final" style="margin-top:8px"></pre>
+      </div>
+    </section>
+    <section id="delivery-section">
+      <h2>任务交付</h2>
+      <div id="delivery-list">加载中…</div>
+    </section>
+    <section>
+      <h2>登记交付物</h2>
+      <div class="grid2">
+        <div>
+          <label>任务 ID</label>
+          <input id="d-task-id" placeholder="task_id 或任意标识">
+          <label>名称</label>
+          <input id="d-name" placeholder="scene.png">
+          <label>类型</label>
+          <select id="d-kind">
+            <option value="file">文件</option>
+            <option value="screenshot">截图</option>
+            <option value="report">报告</option>
+            <option value="model">模型</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div>
+          <label>路径</label>
+          <input id="d-path" placeholder="C:\workspace\out\scene.png">
+          <label>描述</label>
+          <textarea id="d-description" placeholder="交付物说明"></textarea>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="btn-add-deliverable">登记交付物</button>
+      </div>
+      <div class="error-line" id="delivery-error"></div>
+      <h2 style="margin-top:16px">写交接总结</h2>
+      <div class="grid2">
+        <div>
+          <label>任务 ID</label>
+          <input id="h-task-id" placeholder="task_id">
+          <label>总结</label>
+          <textarea id="h-summary" placeholder="完成了什么、改了什么"></textarea>
+        </div>
+        <div>
+          <label>验证步骤（每行一个）</label>
+          <textarea id="h-verify" placeholder="如何验证交付物"></textarea>
+          <label>下一步（每行一个）</label>
+          <textarea id="h-next" placeholder="后续建议"></textarea>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="btn-set-handoff">写交接总结</button>
+      </div>
+    </section>
+  </main>
+
   <script>
     const $ = (id) => document.getElementById(id);
 
+    function badge(ok, text) {
+      return `<span class="badge ${ok ? "ok" : "err"}">${text}</span>`;
+    }
+
+    async function api(path, options) {
+      const res = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      if (res.status === 204) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      return data;
+    }
+
     async function loadHealth() {
       try {
-        const res = await fetch("/health");
-        const data = await res.json();
+        const data = await api("/health");
         $("health").textContent = `backend ${data.version} · ${data.provider}/${data.model}`;
       } catch (err) {
         $("health").textContent = "backend 未连接";
       }
     }
 
+    // ---------- 总览 ----------
+    async function loadOverview() {
+      try {
+        const [hosts, configs] = await Promise.all([api("/hosts"), api("/config/hosts")]);
+        const okCount = configs.filter((c) => c.health_ok).length;
+        const regCount = configs.filter((c) => c.registered).length;
+        $("overview-body").innerHTML =
+          `<p>配置软件：<b>${configs.length}</b> 个；已注册宿主：<b>${regCount}</b>；健康在线：<b>${okCount}</b></p>` +
+          `<p>宿主工具：<b>${hosts.tools.length}</b> 个</p>` +
+          configs.map((c) =>
+            `<div class="card"><div class="card-head"><span class="card-title">${c.name}</span>` +
+            (c.health_ok ? badge(true, "在线") : badge(false, "离线")) +
+            `<span class="card-meta">${c.host_kind} · ${c.product_version || "未注册"}</span></div></div>`
+          ).join("") || '<p class="empty">尚无配置</p>';
+      } catch (err) {
+        $("overview-body").textContent = "无法加载：" + err.message;
+      }
+    }
+
+    // ---------- 软件配置 ----------
+    async function loadConfigs() {
+      $("config-list").textContent = "加载中…";
+      try {
+        const configs = await api("/config/hosts");
+        if (!configs.length) {
+          $("config-list").innerHTML = '<p class="empty">尚未配置任何软件</p>';
+          return;
+        }
+        $("config-list").innerHTML = configs.map(renderConfigCard).join("");
+      } catch (err) {
+        $("config-list").innerHTML = '<p class="empty">无法加载：' + err.message + "</p>";
+      }
+    }
+
+    function renderConfigCard(c) {
+      const status = c.health_ok ? badge(true, "在线") :
+        c.registered ? badge(false, "已注册·异常") :
+        c.process_running ? badge(false, "进程运行") :
+        c.enabled ? badge(false, "离线") : badge(false, "已停用");
+      const stateBadge = c.enabled ? "" : '<span class="badge off">未启用</span>';
+      return `<div class="card" data-id="${c.host_id}">
+        <div class="card-head">
+          <span class="card-title">${c.name}</span>${status}${stateBadge}
+          <span class="card-meta">${c.host_id} · ${c.host_kind}${c.auto_start ? " · 自动启动" : ""}</span>
+        </div>
+        <div class="card-meta">产品：${c.product || "-"} · 版本：${c.product_version || "-"} · 端点：${c.endpoint || "-"}</div>
+        ${c.error ? `<div class="card-meta" style="color:#f0a3a3">${c.error}</div>` : ""}
+        <div class="card-actions">
+          <button class="sm" data-act="test">测试连接</button>
+          <button class="sm" data-act="start">启动</button>
+          <button class="sm" data-act="stop">停止</button>
+          <button class="sm ghost" data-act="edit">编辑</button>
+          <button class="sm danger" data-act="delete">删除</button>
+        </div>
+      </div>`;
+    }
+
+    $("config-list").addEventListener("click", async (event) => {
+      const btn = event.target.closest("button[data-act]");
+      if (!btn) return;
+      const card = btn.closest(".card");
+      const id = card.dataset.id;
+      const act = btn.dataset.act;
+      try {
+        if (act === "test") {
+          const r = await api(`/config/hosts/${id}/test`, { method: "POST" });
+          alert(`${r.ok ? "连接正常" : "连接失败"}\n${r.message}`);
+        } else if (act === "start") {
+          await api(`/config/hosts/${id}/start`, { method: "POST" });
+        } else if (act === "stop") {
+          await api(`/config/hosts/${id}/stop`, { method: "POST" });
+        } else if (act === "delete") {
+          if (!confirm(`确定删除软件配置 ${id} ？`)) return;
+          await api(`/config/hosts/${id}`, { method: "DELETE" });
+        } else if (act === "edit") {
+          const config = (await api("/config/hosts")).find((c) => c.host_id === id);
+          if (!config) return;
+          $("form-title").textContent = "编辑软件：" + config.name;
+          $("f-host-id").value = config.host_id;
+          $("f-host-id").disabled = true;
+          $("f-name").value = config.name;
+          $("f-host-kind").value = config.host_kind;
+          $("f-product").value = config.product;
+          $("f-command").value = "";
+          $("f-cwd").value = "";
+          $("f-args").value = "";
+          $("f-enabled").checked = config.enabled;
+          $("f-auto-start").checked = config.auto_start;
+          $("btn-cancel-edit").classList.remove("hidden");
+          $("software").scrollIntoView();
+          window._editingId = id;
+          return;
+        }
+        await Promise.all([loadConfigs(), loadOverview()]);
+      } catch (err) {
+        alert("操作失败：" + err.message);
+      }
+    });
+
+    $("btn-cancel-edit").addEventListener("click", () => {
+      resetForm();
+    });
+
+    function resetForm() {
+      $("form-title").textContent = "新增软件";
+      ["f-host-id", "f-name", "f-host-kind", "f-product", "f-command", "f-cwd", "f-args"].forEach((id) => {
+        $(id).value = "";
+        $(id).disabled = false;
+      });
+      $("f-enabled").checked = true;
+      $("f-auto-start").checked = false;
+      $("btn-cancel-edit").classList.add("hidden");
+      $("form-error").textContent = "";
+      window._editingId = null;
+    }
+
+    $("config-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      $("form-error").textContent = "";
+      const editing = window._editingId;
+      const launch = {
+        command: $("f-command").value.trim(),
+        args: $("f-args").value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean),
+        cwd: $("f-cwd").value.trim(),
+        env: {},
+        env_vars: [],
+      };
+      const payload = {
+        host_id: $("f-host-id").value.trim(),
+        name: $("f-name").value.trim(),
+        host_kind: $("f-host-kind").value.trim(),
+        product: $("f-product").value.trim(),
+        enabled: $("f-enabled").checked,
+        auto_start: $("f-auto-start").checked,
+        launch,
+      };
+      try {
+        if (editing) {
+          await api(`/config/hosts/${editing}`, {
+            method: "PUT",
+            body: JSON.stringify(payload),
+          });
+        } else {
+          await api("/config/hosts", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+        }
+        resetForm();
+        await Promise.all([loadConfigs(), loadOverview()]);
+      } catch (err) {
+        $("form-error").textContent = "保存失败：" + err.message;
+      }
+    });
+
+    // ---------- 连接监控 ----------
     async function loadHosts() {
       $("host-list").textContent = "加载中…";
       $("tool-list").textContent = "加载中…";
       try {
-        const res = await fetch("/hosts");
-        const data = await res.json();
-        renderHosts(data.hosts);
-        renderTools(data.tools);
+        const data = await api("/hosts");
+        const hosts = data.hosts || [];
+        $("host-list").innerHTML = hosts.length
+          ? hosts.map((h) => {
+              const ok = h.status === "ok";
+              return `<div class="card">
+                <div class="card-head"><span class="card-title">${h.product} ${h.product_version}</span>${badge(ok, h.status)}</div>
+                <div class="card-meta">${h.host_kind} · ${h.host_id} · ${h.endpoint} · pid=${h.pid}</div>
+              </div>`;
+            }).join("")
+          : '<p class="empty">没有发现宿主。请在目标软件（如 Blender）中启动适配器。</p>';
+        $("tool-list").innerHTML = (data.tools || []).map((t) => `<span class="chip">${t}</span>`).join("") || '<p class="empty">暂无工具</p>';
+        $("error-list").innerHTML = (data.errors || []).length
+          ? data.errors.map((e) => `<div class="card-meta" style="color:#f0a3a3">${e.host_id}: ${e.error_code} ${e.message}</div>`).join("")
+          : '<span class="empty">无</span>';
       } catch (err) {
         $("host-list").innerHTML = '<p class="empty">无法连接 backend</p>';
         $("tool-list").innerHTML = '<p class="empty">无法连接 backend</p>';
       }
     }
 
-    function renderHosts(hosts) {
-      const box = $("host-list");
-      if (!hosts.length) {
-        box.innerHTML = '<p class="empty">没有发现软件宿主。请在目标软件（如 Blender）中启动适配器。</p>';
-        return;
-      }
-      box.innerHTML = "";
-      for (const host of hosts) {
-        const card = document.createElement("div");
-        card.className = "host";
-        const status = host.status || "unknown";
-        card.innerHTML =
-          `<div class="host-title">${host.product} ${host.product_version}` +
-          `<span class="badge ${status === "ok" ? "ok" : "err"}">${status}</span></div>` +
-          `<div class="host-meta">${host.host_kind} · ${host.host_id} · ${host.endpoint}</div>`;
-        box.appendChild(card);
-      }
-    }
-
-    function renderTools(tools) {
-      const box = $("tool-list");
-      if (!tools.length) {
-        box.innerHTML = '<p class="empty">暂无工具</p>';
-        return;
-      }
-      box.innerHTML = "";
-      for (const name of tools) {
-        const chip = document.createElement("span");
-        chip.className = "chip";
-        chip.textContent = name;
-        box.appendChild(chip);
-      }
-    }
-
+    // ---------- 对话 ----------
     function appendMessage(role, text) {
       const box = $("messages");
       const div = document.createElement("div");
@@ -146,8 +498,6 @@
       box.appendChild(div);
       box.scrollTop = box.scrollHeight;
     }
-
-    $("refresh").addEventListener("click", loadHosts);
 
     $("chat-form").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -158,27 +508,203 @@
       appendMessage("user", message);
       appendMessage("assistant", "正在思考…");
       try {
-        const res = await fetch("/chat/message", {
+        const data = await api("/chat/message", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message, mode: "standard" }),
         });
-        const data = await res.json();
         const text = data.reply_text || data.knowledge_warning || "（无回复）";
         const last = $("messages").lastElementChild;
         last.textContent = "助手：" + text;
-        if (data.knowledge_grounded === false) {
-          last.textContent += "\n（未核验来源）";
-        }
+        if (data.knowledge_grounded === false) last.textContent += "\n（未校验来源）";
       } catch (err) {
-        const last = $("messages").lastElementChild;
-        last.textContent = "助手：请求失败：" + err;
+        $("messages").lastElementChild.textContent = "助手：请求失败：" + err.message;
       }
     });
 
+    // ---------- Agent 接入（MCP） ----------
+    async function loadMcpPanel() {
+      try {
+        const [preview, status] = await Promise.all([
+          api("/config/mcp/preview"),
+          api("/config/mcp/status"),
+        ]);
+        const names = preview.servers.map((s) => `<span class="chip">${s.name}</span>`).join("") || "（无）";
+        $("mcp-servers").innerHTML =
+          `可生成服务器：${names}<br>` +
+          `Codex 配置路径：<code>${status.codex_path}</code><br>` +
+          `Codex 已注册：${status.codex_servers.length ? status.codex_servers.map((s) => `<span class="chip">${s}</span>`).join("") : "无"}`;
+        $("mcp-preview").textContent = preview.codex_toml || "（无）";
+        $("mcp-status").textContent = "";
+      } catch (err) {
+        $("mcp-servers").textContent = "加载失败：" + err.message;
+      }
+    }
+
+    async function writeMcp(kind) {
+      const btn = kind === "codex" ? $("btn-write-codex") : $("btn-write-claude");
+      btn.disabled = true;
+      $("mcp-status").textContent = "正在写入…";
+      try {
+        const result = await api(`/config/mcp/${kind}`, { method: "POST", body: "{}" });
+        $("mcp-status").textContent = `已写入：${result.path}（${result.servers.join(", ")}）`;
+      } catch (err) {
+        $("mcp-status").textContent = "写入失败：" + err.message;
+      } finally {
+        btn.disabled = false;
+        loadMcpPanel();
+      }
+    }
+
+    $("btn-write-codex").addEventListener("click", () => writeMcp("codex"));
+    $("btn-write-claude").addEventListener("click", () => writeMcp("claude"));
+
+    // ---------- 任务交付 ----------
+    $("btn-run-task").addEventListener("click", async () => {
+      const btn = $("btn-run-task");
+      const message = $("at-message").value.trim();
+      $("at-error").textContent = "";
+      if (!message) {
+        $("at-error").textContent = "请填写需求";
+        return;
+      }
+      btn.disabled = true;
+      $("at-result").classList.add("hidden");
+      $("at-final").textContent = "";
+      $("at-error").textContent = "任务运行中（Agent 正在拆解并调用软件工具，请稍候）…";
+      try {
+        const data = await api("/agent/task", {
+          method: "POST",
+          body: JSON.stringify({
+            message,
+            approval: $("at-approval").value,
+            tool_scope: $("at-scope").value,
+            max_iterations: 12,
+          }),
+        });
+        $("at-result").classList.remove("hidden");
+        $("at-error").textContent = "";
+        const tools = (data.executed_tools || [])
+          .map((t) => `<span class="chip">${t.name}${t.ok ? " ✓" : " ✗"}</span>`)
+          .join("") || "（无工具调用）";
+        $("at-tools").innerHTML = `已执行：${tools}`;
+        $("at-final").textContent = data.final_text || "（无回复）";
+        $("at-summary").textContent = `任务 ${data.task_id} · 状态：${data.stopped_reason} · 迭代 ${data.iterations || 0} 次`;
+        loadDelivery();
+      } catch (err) {
+        $("at-error").textContent = "任务失败：" + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    async function loadDelivery() {
+      $("delivery-list").textContent = "加载中…";
+      try {
+        const tasks = await api("/delivery/tasks?limit=50");
+        if (!tasks.length) {
+          $("delivery-list").innerHTML = '<p class="empty">还没有交付记录。完成任务后，用控制面 MCP 的 ab_record_deliverable / ab_set_handoff 登记，或直接在下表填写。</p>';
+          return;
+        }
+        $("delivery-list").innerHTML = tasks.map(renderDeliveryCard).join("");
+      } catch (err) {
+        $("delivery-list").textContent = "无法加载：" + err.message;
+      }
+    }
+
+    function renderDeliveryCard(t) {
+      const items = t.deliverables.map((d) =>
+        `<div class="card-meta">· <b>${d.name}</b>（${d.kind}）${d.path ? " → " + d.path : ""}${d.description ? " — " + d.description : ""}</div>`
+      ).join("") || '<div class="card-meta">无交付物</div>';
+      const handoff = t.handoff && t.handoff.summary
+        ? `<div class="card-meta" style="color:#8ee6b0">交接：${t.handoff.summary}</div>` +
+          (t.handoff.verification_steps.length ? `<div class="card-meta">验证：${t.handoff.verification_steps.join("；")}</div>` : "") +
+          (t.handoff.next_steps.length ? `<div class="card-meta">下一步：${t.handoff.next_steps.join("；")}</div>` : "")
+        : "";
+      return `<div class="card">
+        <div class="card-head"><span class="card-title">${t.task_id}</span>${badge(t.status !== "failed", t.status)}</div>
+        <div class="card-meta">目标：${t.user_goal || "-"} · 交付物 ${t.deliverable_count} 个</div>
+        ${items}${handoff}
+      </div>`;
+    }
+
+    $("btn-add-deliverable").addEventListener("click", async () => {
+      $("delivery-error").textContent = "";
+      const taskId = $("d-task-id").value.trim();
+      if (!taskId) {
+        $("delivery-error").textContent = "请填写任务 ID";
+        return;
+      }
+      try {
+        await api(`/delivery/tasks/${encodeURIComponent(taskId)}/deliverables`, {
+          method: "POST",
+          body: JSON.stringify({
+            name: $("d-name").value.trim(),
+            kind: $("d-kind").value,
+            path: $("d-path").value.trim(),
+            description: $("d-description").value.trim(),
+          }),
+        });
+        $("d-name").value = ""; $("d-path").value = ""; $("d-description").value = "";
+        loadDelivery();
+      } catch (err) {
+        $("delivery-error").textContent = "登记失败：" + err.message;
+      }
+    });
+
+    $("btn-set-handoff").addEventListener("click", async () => {
+      $("delivery-error").textContent = "";
+      const taskId = $("h-task-id").value.trim();
+      if (!taskId) {
+        $("delivery-error").textContent = "请填写任务 ID";
+        return;
+      }
+      try {
+        await api(`/delivery/tasks/${encodeURIComponent(taskId)}/handoff`, {
+          method: "PUT",
+          body: JSON.stringify({
+            summary: $("h-summary").value.trim(),
+            verification_steps: $("h-verify").value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean),
+            next_steps: $("h-next").value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean),
+          }),
+        });
+        $("h-summary").value = ""; $("h-verify").value = ""; $("h-next").value = "";
+        loadDelivery();
+      } catch (err) {
+        $("delivery-error").textContent = "写入失败：" + err.message;
+      }
+    });
+
+    // ---------- 路由（对应桌面侧边栏） ----------
+    function route() {
+      const section = (location.hash || "#overview").replace("#", "");
+      document.querySelectorAll("main").forEach((m) => m.classList.add("hidden"));
+      const target = document.getElementById(section) || $("overview");
+      target.classList.remove("hidden");
+      document.querySelectorAll("nav.tabs button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.section === section);
+      });
+      if (section === "overview") loadOverview();
+      if (section === "software") loadConfigs();
+      if (section === "monitor") loadHosts();
+      if (section === "agents") loadMcpPanel();
+      if (section === "tasks") loadDelivery();
+    }
+
+    document.querySelectorAll("nav.tabs button").forEach((b) => {
+      b.addEventListener("click", () => {
+        location.hash = b.dataset.section;
+      });
+    });
+    window.addEventListener("hashchange", route);
+
+    $("refresh").addEventListener("click", () => {
+      loadHealth();
+      route();
+    });
+
     loadHealth();
-    loadHosts();
-    setInterval(loadHosts, 10000);
+    route();
+    setInterval(loadHealth, 10000);
   </script>
 </body>
 </html>
