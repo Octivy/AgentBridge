@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -21,7 +22,11 @@ namespace AgentBridge.Core
     internal static class LocalToolBridge
     {
         private const string ProtocolVersion = "2.0";
+        private const string HostProtocolVersion = "1.0";
+        private const string HostId = "autocad-main";
         private static readonly object SyncRoot = new object();
+        private static JObject _hostManifest;
+        private static string _registrationPath;
 
         private static TcpListener _listener;
         private static CancellationTokenSource _cancellationTokenSource;
@@ -67,6 +72,7 @@ namespace AgentBridge.Core
                     _listener.Start();
                     _serverTask = Task.Run(() => AcceptLoopAsync(_cancellationTokenSource.Token));
                     _started = true;
+                    WriteRegistration();
                     Logger.Info("LocalToolBridge listening on http://" + _host + ":" + _port + "/");
                 }
                 catch (Exception ex)
@@ -108,6 +114,7 @@ namespace AgentBridge.Core
                 _cancellationTokenSource = null;
                 _serverTask = null;
                 _started = false;
+                RemoveRegistration();
                 Logger.Info("LocalToolBridge stopped.");
             }
         }
@@ -203,7 +210,89 @@ namespace AgentBridge.Core
             if (request.Method == "GET" && request.Path == "/health")
             {
                 ToolResponse response = await MainThreadDispatcher.InvokeAsync(BuildHealthResponse).ConfigureAwait(false);
-                return CreateJsonResponse(HttpStatusCode.OK, response);
+                return CreateJsonResponse(HttpStatusCode.OK, BuildContractHealthResponse(response));
+            }
+
+            if (request.Method == "GET" && request.Path == "/manifest")
+            {
+                JObject manifest = await MainThreadDispatcher.InvokeAsync(BuildManifestResponse).ConfigureAwait(false);
+                return CreateJsonResponse(HttpStatusCode.OK, manifest);
+            }
+
+            if (request.Method == "POST" && request.Path == "/snapshot")
+            {
+                LocalToolRequest snapshotPayload = DeserializePayload<LocalToolRequest>(request.Body)
+                    ?? new LocalToolRequest { ToolName = "get_drawing_snapshot" };
+                try
+                {
+                    ToolResponse response = await MainThreadDispatcher
+                        .InvokeAsync(() => BuildSnapshotResponse(snapshotPayload))
+                        .ConfigureAwait(false);
+                    JObject result = response.Result as JObject;
+                    JToken snapshot = result != null ? result["snapshot"] : null;
+                    return CreateJsonResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, new JObject
+                    {
+                        ["ok"] = response.Ok,
+                        ["snapshot"] = snapshot ?? (response.Result != null ? JToken.FromObject(response.Result) : JValue.CreateNull()),
+                        ["error_code"] = response.ErrorCode,
+                        ["error_message"] = response.ErrorMessage
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return CreateJsonResponse(HttpStatusCode.BadRequest, new JObject
+                    {
+                        ["ok"] = false,
+                        ["error_code"] = "execution_failed",
+                        ["error_message"] = ex.Message
+                    });
+                }
+            }
+
+            if (request.Method == "POST" && request.Path == "/rollback")
+            {
+                LocalToolRequest rollbackBody = DeserializePayload<LocalToolRequest>(request.Body);
+                LocalToolRequest rollbackPayload = new LocalToolRequest
+                {
+                    ToolName = "cad_rollback_transaction",
+                    Arguments = new JObject
+                    {
+                        ["rollback_token"] = rollbackBody != null && rollbackBody.Arguments != null
+                            ? rollbackBody.Arguments["rollback_token"]
+                            : null
+                    },
+                    DryRun = false,
+                    Caller = "hostmcp"
+                };
+                ToolResponse response = await ExecuteToolAsync(rollbackPayload).ConfigureAwait(false);
+                return CreateJsonResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, BuildContractToolResponse(rollbackPayload, response));
+            }
+
+            if (request.Method == "POST" && request.Path.StartsWith("/tools/", StringComparison.OrdinalIgnoreCase))
+            {
+                string hostToolName = Uri.UnescapeDataString(request.Path.Substring("/tools/".Length)).Trim().ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(hostToolName))
+                {
+                    return CreateJsonResponse(HttpStatusCode.BadRequest, new JObject
+                    {
+                        ["ok"] = false,
+                        ["error_code"] = "invalid_request",
+                        ["error_message"] = "tool name is required."
+                    });
+                }
+                LocalToolRequest hostBody = DeserializePayload<LocalToolRequest>(request.Body);
+                LocalToolRequest hostPayload = new LocalToolRequest
+                {
+                    ToolName = hostToolName,
+                    Arguments = hostBody != null ? hostBody.Arguments : null,
+                    DryRun = hostBody != null ? hostBody.DryRun : (bool?)true,
+                    RequestId = hostBody != null ? hostBody.RequestId : null,
+                    TraceId = hostBody != null ? hostBody.TraceId : null,
+                    Caller = "hostmcp"
+                };
+                ToolResponse response = await ExecuteToolAsync(hostPayload).ConfigureAwait(false);
+                LogToolAudit(hostPayload, response);
+                return CreateJsonResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, BuildContractToolResponse(hostPayload, response));
             }
 
             if (request.Method == "POST" && request.Path == "/tools/execute")
@@ -332,6 +421,163 @@ namespace AgentBridge.Core
                 Ok = true,
                 ToolName = "cad_health_check",
                 Result = result
+            };
+        }
+
+        private static JObject BuildContractHealthResponse(ToolResponse health)
+        {
+            JObject result = health.Result as JObject ?? new JObject();
+            string pluginVersion = ((result["plugin"] as JObject)?["version"])?.ToString() ?? "unknown";
+            JToken documentOpenToken = (result["autocad"] as JObject)?["document_open"];
+            bool documentOpen = documentOpenToken != null && documentOpenToken.Type == JTokenType.Boolean && documentOpenToken.Value<bool>();
+            return new JObject
+            {
+                ["ok"] = health.Ok,
+                ["tool_name"] = health.ToolName,
+                ["result"] = result,
+                ["product"] = "AutoCAD",
+                ["product_version"] = pluginVersion,
+                ["document_open"] = documentOpen,
+                ["detail"] = result
+            };
+        }
+
+        private static JObject BuildManifestResponse()
+        {
+            JObject manifest = LoadHostManifest();
+            manifest["product_version"] = SafeApplicationVersion();
+            return manifest;
+        }
+
+        private static JObject LoadHostManifest()
+        {
+            if (_hostManifest != null)
+            {
+                return _hostManifest;
+            }
+
+            JObject manifest = new JObject
+            {
+                ["schema_version"] = 1,
+                ["host_id"] = HostId,
+                ["host_kind"] = "autocad",
+                ["product"] = "AutoCAD",
+                ["product_version"] = SafeApplicationVersion(),
+                ["protocol_version"] = HostProtocolVersion,
+                ["capabilities"] = new JArray("snapshot", "dry_run", "rollback"),
+                ["tools"] = new JArray()
+            };
+            try
+            {
+                string manifestPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "autocad_tools.json");
+                if (File.Exists(manifestPath))
+                {
+                    JObject payload = JObject.Parse(File.ReadAllText(manifestPath));
+                    JArray tools = payload["tools"] as JArray;
+                    if (tools != null)
+                    {
+                        manifest["tools"] = tools;
+                    }
+                }
+                else
+                {
+                    Logger.Warn("Host manifest file missing: " + manifestPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("Failed to load host manifest: " + ex.Message);
+            }
+            _hostManifest = manifest;
+            return manifest;
+        }
+
+        private static string SafeApplicationVersion()
+        {
+            try
+            {
+                Version version = Application.Version;
+                return version != null ? version.ToString() : "unknown";
+            }
+            catch
+            {
+                return "unknown";
+            }
+        }
+
+        private static void WriteRegistration()
+        {
+            try
+            {
+                string baseDirectory = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string directory = Path.Combine(baseDirectory, "AgentBridge", "hosts");
+                Directory.CreateDirectory(directory);
+                int pid = Process.GetCurrentProcess().Id;
+                _registrationPath = Path.Combine(directory, HostId + "-" + pid + ".json");
+                JObject registration = new JObject
+                {
+                    ["schema_version"] = 1,
+                    ["host_id"] = HostId,
+                    ["host_kind"] = "autocad",
+                    ["product"] = "AutoCAD",
+                    ["product_version"] = SafeApplicationVersion(),
+                    ["protocol_version"] = HostProtocolVersion,
+                    ["endpoint"] = "http://" + _host + ":" + _port,
+                    ["token"] = _token,
+                    ["pid"] = pid,
+                    ["registered_at"] = DateTime.UtcNow.ToString("o")
+                };
+                string temporaryPath = _registrationPath + ".tmp";
+                File.WriteAllText(temporaryPath, registration.ToString(Formatting.None));
+                if (File.Exists(_registrationPath))
+                {
+                    File.Delete(_registrationPath);
+                }
+                File.Move(temporaryPath, _registrationPath);
+                Logger.Info("Host registration written: " + _registrationPath);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("Failed to write host registration: " + ex.Message);
+            }
+        }
+
+        private static void RemoveRegistration()
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(_registrationPath) && File.Exists(_registrationPath))
+                {
+                    File.Delete(_registrationPath);
+                    Logger.Info("Host registration removed: " + _registrationPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn("Failed to remove host registration: " + ex.Message);
+            }
+            finally
+            {
+                _registrationPath = null;
+            }
+        }
+
+        private static JObject BuildContractToolResponse(LocalToolRequest payload, ToolResponse response)
+        {
+            string rollbackToken = null;
+            if (response.Transaction is CadTransactionEnvelope envelope)
+            {
+                rollbackToken = envelope.RollbackToken;
+            }
+            return new JObject
+            {
+                ["ok"] = response.Ok,
+                ["tool_name"] = payload.ToolName,
+                ["result"] = response.Result != null ? JToken.FromObject(response.Result) : JValue.CreateNull(),
+                ["dry_run"] = payload.DryRun.GetValueOrDefault(false),
+                ["rollback_token"] = rollbackToken,
+                ["error_code"] = response.ErrorCode,
+                ["error_message"] = response.ErrorMessage
             };
         }
 

@@ -146,7 +146,7 @@ python -m host_mcp --transport stdio --registry-dir "$env:LOCALAPPDATA\AgentBrid
 
 | 软件 | 适配器形态 | 说明 |
 | --- | --- | --- |
-| AutoCAD | 现有 C# 插件改造 | 保留本地桥，移除聊天 UI 主体，`AICHAT` 保留为可选入口 |
+| AutoCAD | C# 插件（已实现） | 本地桥已实现 `/manifest`、`/snapshot`、`/tools/<name>`、`/rollback`，以 `autocad-main` 注册 |
 | Blender | Python add-on | `bpy` 事件循环内起 HTTP 线程，本仓库已提供骨架 |
 | SketchUp | Ruby 扩展 | `TCPServer` 起本地服务（已提供骨架） |
 | Rhino | C# 插件或 Rhino.Python | 起本地 HTTP 服务，依赖 Rhino 8 内置 Python |

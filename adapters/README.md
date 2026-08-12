@@ -4,12 +4,12 @@
 
 | 目录 | 软件 | 形态 | 状态 |
 | --- | --- | --- | --- |
-| `blender/` | Blender | Python add-on + stdlib HTTP 服务 | 骨架已实现（示例工具） |
+| `blender/` | Blender | Python add-on + stdlib HTTP 服务 | 已实现（示例工具，实机验证通过） |
 | `sketchup/` | SketchUp | Ruby 扩展 + `TCPServer` | 骨架 |
 | `rhino/` | Rhino | C# 插件或 Rhino.Python | 规划 |
 | `_shared/` | - | 适配器共用的注册文件写入（无项目依赖） | 已实现 |
 
-AutoCAD 暂以仓库内现有 C# 插件承担适配器职责（本地桥 + 13 工具），后续改造为纯适配器并复用同一注册机制。
+AutoCAD 由仓库内 C# 插件承担适配器职责（本地桥 + 9 个 CAD 可执行工具），已实现 Host Adapter Contract 端点（`/manifest`、`/health`、`/snapshot`、`/tools/<name>`、`/rollback`）并接入同一注册机制（`autocad-main`）。工具清单由 `scripts/export_autocad_host_manifest.py` 从 `cadmcp` 工具注册表生成，测试保证同步。
 
 ## 验证
 

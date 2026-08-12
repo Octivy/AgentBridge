@@ -1,0 +1,1369 @@
+{
+  "schema_version": 1,
+  "tools": [
+    {
+      "category": "system",
+      "description": "检查 AutoCAD 本地桥、活动图纸和插件版本。",
+      "display_name": "CAD 健康检查",
+      "dry_run_supported": false,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "read_only",
+      "rollback_supported": false,
+      "side_effect_level": "none",
+      "tool_name": "cad_health_check"
+    },
+    {
+      "category": "analysis",
+      "description": "读取当前图纸的图层、实体、文字、块、自定义对象和代理对象摘要。",
+      "display_name": "读取图纸快照",
+      "dry_run_supported": false,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "scope": {
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "read_only",
+      "rollback_supported": false,
+      "side_effect_level": "none",
+      "tool_name": "get_drawing_snapshot"
+    },
+    {
+      "category": "analysis",
+      "description": "读取当前图纸的图层状态和实体统计。",
+      "display_name": "读取图层",
+      "dry_run_supported": false,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "read_only",
+      "rollback_supported": false,
+      "side_effect_level": "none",
+      "tool_name": "list_layers"
+    },
+    {
+      "category": "drawing",
+      "description": "预演并绘制一条普通 CAD 直线。",
+      "display_name": "绘制直线",
+      "dry_run_supported": true,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "end": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "type": "array"
+          },
+          "layer": {
+            "type": "string"
+          },
+          "start": {
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 3,
+            "minItems": 2,
+            "type": "array"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "reversible_write",
+      "rollback_supported": true,
+      "side_effect_level": "high",
+      "tool_name": "draw_line"
+    },
+    {
+      "category": "organization",
+      "description": "预演并创建或更新一个普通 CAD 图层。",
+      "display_name": "确保图层存在",
+      "dry_run_supported": true,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "maximum": 255,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "layer": {
+            "type": "string"
+          },
+          "layer_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "reversible_write",
+      "rollback_supported": false,
+      "side_effect_level": "high",
+      "tool_name": "ensure_layer"
+    },
+    {
+      "category": "drawing",
+      "description": "预演并在一个事务中执行经过验证的普通 CAD 绘图命令。",
+      "display_name": "执行绘图批次",
+      "dry_run_supported": true,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "commands": {
+            "items": {
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "commands"
+        ],
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "reversible_write",
+      "rollback_supported": true,
+      "side_effect_level": "high",
+      "tool_name": "execute_draw_batch"
+    },
+    {
+      "category": "conversion",
+      "description": "预演并把已确认的外围轮廓绘制为独立图层上的一条闭合多段线。",
+      "display_name": "绘制外围轮廓",
+      "dry_run_supported": true,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "boundary": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 2,
+              "type": "array"
+            },
+            "minItems": 3,
+            "type": "array"
+          },
+          "layer": {
+            "type": "string"
+          },
+          "object_id": {
+            "type": "string"
+          },
+          "outline": {
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "reversible_write",
+      "rollback_supported": true,
+      "side_effect_level": "high",
+      "tool_name": "arch_draw_outer_outline"
+    },
+    {
+      "category": "organization",
+      "description": "预演并迁移当前空间中命中映射的实体，可用 Handle 进一步限定。",
+      "display_name": "应用图层映射",
+      "dry_run_supported": true,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "entity_handles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "mappings": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "entity_count": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "semantic_type": {
+                  "type": "string"
+                },
+                "source_layer": {
+                  "type": "string"
+                },
+                "target_color": {
+                  "maximum": 255,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "target_layer": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "source_layer",
+                "target_layer"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "mappings"
+        ],
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "reversible_write",
+      "rollback_supported": true,
+      "side_effect_level": "high",
+      "tool_name": "arch_apply_layer_mapping"
+    },
+    {
+      "category": "safety",
+      "description": "回滚由本插件提交且尚未被用户继续修改的 CAD 实体变更。",
+      "display_name": "回滚 CAD 事务",
+      "dry_run_supported": true,
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "rollback_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rollback_token"
+        ],
+        "type": "object"
+      },
+      "result_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "affected_entities": {
+            "type": "array"
+          },
+          "affected_entities_count": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "assistant_message": {
+            "type": "string"
+          },
+          "audit": {
+            "type": "object"
+          },
+          "cad_operations": {
+            "type": "array"
+          },
+          "data": {
+            "type": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "dry_run": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_action": {
+            "type": "object"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "permission_expires_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "permission_request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "permission_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preview": {
+            "type": "object"
+          },
+          "preview_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "request_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requires_permission": {
+            "type": "boolean"
+          },
+          "risk_level": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          },
+          "trace_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transaction": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "ok",
+          "tool_name",
+          "summary",
+          "data",
+          "error_code",
+          "error_message",
+          "dry_run",
+          "request_id",
+          "affected_entities_count"
+        ],
+        "type": "object"
+      },
+      "risk_level": "destructive_write",
+      "rollback_supported": false,
+      "side_effect_level": "high",
+      "tool_name": "cad_rollback_transaction"
+    }
+  ]
+}

@@ -63,5 +63,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Resources\system_prompt.txt</Link>
     </None>
+    <None Include="Resources\autocad_tools.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\autocad_tools.json</Link>
+    </None>
   </ItemGroup>
 </Project>
