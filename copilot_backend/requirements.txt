@@ -3,5 +3,6 @@ uvicorn[standard]==0.34.2
 httpx==0.28.1
 pydantic==2.11.4
 python-dotenv==1.2.2
+tomli_w>=1.0,<2
 mcp[cli]>=1.27,<2
 cadmcp>=0.2,<0.3

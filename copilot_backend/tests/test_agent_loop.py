@@ -174,7 +174,13 @@ class TestProtocolConverters:
         ]
         converted = to_responses_input(canonical)
         assert converted[1] == {"role": "assistant", "content": "ok"}
-        assert converted[2] == {"type": "function_call", "call_id": "fc_1", "name": "list_layers", "arguments": "{}"}
+        assert converted[2] == {
+            "type": "function_call",
+            "id": "fc_1",
+            "call_id": "fc_1",
+            "name": "list_layers",
+            "arguments": "{}",
+        }
         assert converted[3] == {"type": "function_call_output", "call_id": "fc_1", "output": "done"}
 
 

@@ -96,7 +96,7 @@ def parse_tool_calls(protocol: str, assistant_message: Mapping[str, Any]) -> Lis
             if isinstance(item, Mapping) and item.get("type") == "function_call":
                 calls.append(
                     {
-                        "id": str(item.get("id") or item.get("call_id") or ""),
+                        "id": str(item.get("call_id") or item.get("id") or ""),
                         "name": str(item.get("name") or ""),
                         "arguments": _normalize_arguments(item.get("arguments")),
                     }
@@ -229,6 +229,9 @@ def to_responses_input(messages: Sequence[Mapping[str, Any]]) -> List[Dict[str, 
 
     converted: List[Dict[str, Any]] = []
     for message in messages:
+        if message.get("type") == "function_call_output":
+            converted.append(dict(message))
+            continue
         role = str(message.get("role") or "")
         content = message.get("content") or ""
         if role == "tool":
@@ -240,11 +243,13 @@ def to_responses_input(messages: Sequence[Mapping[str, Any]]) -> List[Dict[str, 
                 }
             )
         elif role == "assistant":
-            converted.append({"role": "assistant", "content": str(content) if content else None})
+            assistant_item: Dict[str, Any] = {"role": "assistant", "content": str(content) or ""}
+            converted.append(assistant_item)
             for call in message.get("tool_calls") or []:
                 converted.append(
                     {
                         "type": "function_call",
+                        "id": str(call.get("id") or ""),
                         "call_id": str(call.get("id") or ""),
                         "name": str(call.get("name") or ""),
                         "arguments": json.dumps(call.get("arguments") or {}, ensure_ascii=False),
