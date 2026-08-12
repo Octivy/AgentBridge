@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from delivery.models import (
@@ -25,12 +25,21 @@ class DeliveryService:
 
     def __init__(self, store: Optional[DeliveryStore] = None) -> None:
         self._store = store or DeliveryStore()
+        self._last_stamp = ""
+
+    def _stamp(self) -> str:
+        stamp = _now()
+        if self._last_stamp and stamp <= self._last_stamp:
+            base = datetime.fromisoformat(self._last_stamp)
+            stamp = (base + timedelta(microseconds=1)).isoformat()
+        self._last_stamp = stamp
+        return stamp
 
     def _ensure_record(self, task_id: str, user_goal: str = "") -> DeliveryRecord:
         existing = self._store.get(task_id)
         if existing is not None:
             return existing
-        stamp = _now()
+        stamp = self._stamp()
         return DeliveryRecord(
             task_id=task_id,
             user_goal=user_goal,
@@ -58,10 +67,10 @@ class DeliveryService:
                 kind=request.kind or "file",
                 path=request.path.strip(),
                 description=request.description,
-                created_at=_now(),
+                created_at=self._stamp(),
             )
         )
-        record.updated_at = _now()
+        record.updated_at = self._stamp()
         self._store.upsert(record)
         return self._view(record)
 
@@ -72,9 +81,9 @@ class DeliveryService:
             summary=request.summary,
             verification_steps=list(request.verification_steps),
             next_steps=list(request.next_steps),
-            updated_at=_now(),
+            updated_at=self._stamp(),
         )
-        record.updated_at = _now()
+        record.updated_at = self._stamp()
         self._store.upsert(record)
         return self._view(record)
 

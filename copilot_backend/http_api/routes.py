@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from cadmcp.tool_registry import get_product_tool, list_product_tools
 from connector_runtime.diagnostics import build_connector_capabilities, build_connector_diagnostics
 from adapter_install.sketchup import install_sketchup_extension, sketchup_extension_status
+from adapter_install.blender import blender_addon_status, install_blender_addon
 from agent.host_task import AgentTaskRequest, run_host_task
 from delivery.models import DeliverableCreate, DeliveryTaskView, HandoffUpdate
 from delivery.service import delivery_service
@@ -213,6 +214,20 @@ def sketchup_extension_status_route() -> dict:
     """查询 AgentBridge 扩展在本机 SketchUp 的安装状态。"""
 
     return sketchup_extension_status()
+
+
+@router.post("/config/hosts/blender/install-addon")
+def install_blender_addon_route() -> dict:
+    """一键安装 AgentBridge Blender 插件（重新打开 Blender 自动连接）。"""
+
+    return install_blender_addon()
+
+
+@router.get("/config/hosts/blender/addon-status")
+def blender_addon_status_route() -> dict:
+    """查询 AgentBridge Blender 插件安装状态。"""
+
+    return blender_addon_status()
 
 
 # ----- Agent 接入（MCP 注册管理） -----
