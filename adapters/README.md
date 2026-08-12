@@ -5,7 +5,7 @@
 | 目录 | 软件 | 形态 | 状态 |
 | --- | --- | --- | --- |
 | `blender/` | Blender | Python add-on + stdlib HTTP 服务 | 已实现：场景摘要/几何体/移动/程序化别墅/渲染，实机验证通过 |
-| `sketchup/` | SketchUp | Ruby 扩展 + `TCPServer` | 契约已完整（manifest/health/snapshot/rollback/tools），待 SketchUp 实机验证 |
+| `sketchup/` | SketchUp | Ruby 扩展 + `TCPServer` | 已实现并实机验证通过（SketchUp 2025）：摘要/创建长方体（dry-run+回滚） |
 | `rhino/` | Rhino | Rhino.Python + stdlib HTTP 服务 | 已实现：场景摘要/长方体（dry-run+回滚），契约测试通过，待 Rhino 实机验证 |
 | `_shared/` | - | 适配器共用的注册文件写入（无项目依赖） | 已实现 |
 

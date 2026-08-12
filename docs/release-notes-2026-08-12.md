@@ -11,7 +11,8 @@
 - Agent 任务执行（`/agent/task`、`ab_run_task`）：需求拆解 → 宿主工具执行（hosts/cadmcp/all）→
   写工具 dry-run 自动批准 → 自动写交接总结；真实 DeepSeek 驱动 Blender 完成“建模 + 渲染 + 总结 + 回滚”实机演示。
 - 任务交付：交付物（文件/截图/报告/模型）+ 交接总结，UI 与 API 均可查询。
-- 适配器：Blender（6 工具，实机验证）、Rhino（Python，契约测试通过）、SketchUp（Ruby，契约完整）、AutoCAD cadmcp（13 工具）。
+- 适配器：Blender（6 工具，实机验证）、SketchUp（2 工具，SketchUp 2025 实机验证通过）、
+  Rhino（Python，契约测试通过，待 Rhino 重装后实机）、AutoCAD cadmcp（13 工具）。
 
 ## 质量
 

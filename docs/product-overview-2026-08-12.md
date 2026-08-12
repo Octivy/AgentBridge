@@ -41,7 +41,7 @@ AgentBridge.Desktop（WPF + WebView2 桌面应用）
 | Agent 任务执行 | `copilot_backend/agent/host_task.py` | 已实现：AgentLoop + 宿主工具 + 写工具自动批准 + 自动写交接；`ab_run_task` / `POST /agent/task` |
 | Blender 适配器 | `adapters/blender` | 已实现并实机验证：场景摘要/几何体/移动/程序化别墅/渲染 |
 | Rhino 适配器 | `adapters/rhino` | 已实现：摘要/长方体（dry-run+回滚），契约测试通过，待 Rhino 实机验收 |
-| SketchUp 适配器 | `adapters/sketchup` | 契约完整（Ruby），待 SketchUp 实机验收 |
+| SketchUp 适配器 | `adapters/sketchup` | 已实现并实机验证通过（SketchUp 2025） |
 | AutoCAD | `cadmcp` | 13 个白名单工具，写操作事务/回滚 |
 
 ## 快速开始
@@ -78,11 +78,12 @@ cd copilot_backend; python -m uvicorn app:app --host 127.0.0.1 --port 8000
 - 桌面应用：发布包实机启动，2 秒后端就绪，Blender 在线识别，干净退出。
 - Blender 实机：几何体创建/移动/回滚、别墅 dry-run、渲染出图全部通过。
 - 控制面 MCP：stdio 握手列出 16 工具并成功调用。
+- SketchUp 实机验收：SketchUp 2025 宿主注册/健康、场景摘要、创建长方体（dry-run→应用→回滚）全部通过。
 - Agent 任务实机验证：DeepSeek 自主调用 Blender（创建球体 -> 渲染 PNG -> 场景确认 -> 中文总结），
   写工具 dry-run 自动批准，完成后回滚清理；/agent/task 与 ab_run_task 均可触发。
 - Codex 接入：`~/.codex/config.toml` 已注册 agentbridge/cadmcp/hostmcp，原配置完整保留。
 
 ## 待办
 
-- SketchUp / Rhino 在装有对应软件的机器上做最终实机验收。
+- Rhino 重装后做最终实机验收。
 - 版本发布：整理提交、打版本（建议 1.0.0-alpha）、CI 接入。
