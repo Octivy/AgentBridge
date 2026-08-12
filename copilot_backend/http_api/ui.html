@@ -360,6 +360,7 @@
           <button class="sm" data-act="start">启动</button>
           <button class="sm" data-act="stop">停止</button>
           <button class="sm ghost" data-act="edit">编辑</button>
+          ${c.host_id === "sketchup" ? '<button class="sm ghost" data-act="install-skp">一键安装 SketchUp 扩展</button>' : ""}
           <button class="sm danger" data-act="delete">删除</button>
         </div>
       </div>`;
@@ -399,6 +400,10 @@
           $("btn-cancel-edit").classList.remove("hidden");
           $("software").scrollIntoView();
           window._editingId = id;
+          return;
+        } else if (act === "install-skp") {
+          const r = await api("/config/hosts/sketchup/install-extension", { method: "POST" });
+          alert(r.message + (r.installed && r.installed.length ? "\n" + r.installed.join("\n") : ""));
           return;
         }
         await Promise.all([loadConfigs(), loadOverview()]);
