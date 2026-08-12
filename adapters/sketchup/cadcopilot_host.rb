@@ -13,6 +13,7 @@ require "json"
 require "socket"
 require "securerandom"
 require "fileutils"
+require "time"
 
 module AgentBridgeHost
   HOST_ID = "sketchup-main"
