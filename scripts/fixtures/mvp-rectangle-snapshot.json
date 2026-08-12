@@ -1,0 +1,20 @@
+{
+  "drawing_id": "fixture-rectangle",
+  "units": "mm",
+  "drawing_summary": {
+    "total_entities": 4,
+    "bounds": {"min": [0, 0], "max": [6000, 4000]}
+  },
+  "layers": [
+    {"name": "WALL", "count": 4, "types": ["Line"]}
+  ],
+  "entities": [
+    {"handle": "1", "type": "Line", "layer": "WALL", "start": [0, 0], "end": [6000, 0]},
+    {"handle": "2", "type": "Line", "layer": "WALL", "start": [6000, 0], "end": [6000, 4000]},
+    {"handle": "3", "type": "Line", "layer": "WALL", "start": [6000, 4000], "end": [0, 4000]},
+    {"handle": "4", "type": "Line", "layer": "WALL", "start": [0, 4000], "end": [0, 0]}
+  ],
+  "blocks": [],
+  "texts": [],
+  "dimensions": []
+}

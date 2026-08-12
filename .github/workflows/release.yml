@@ -1,0 +1,26 @@
+name: Publish pre-release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "website/public/downloads/AgentBridge-0.9.0.622-AutoCAD-2024.zip" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "AgentBridge 0.9.0.622 连接器 MVP 预览版" \
+            --notes-file "docs/release-status-2026-08-11.md" \
+            --prerelease

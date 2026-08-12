@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentBridge 客户端</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: #12141a; color: #e6e8ee; padding: 20px;
+    }
+    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    h1 { font-size: 20px; margin: 0; }
+    #health { color: #9aa3b2; font-size: 13px; }
+    button {
+      background: #2b6de8; color: #fff; border: 0; border-radius: 6px;
+      padding: 7px 14px; cursor: pointer; font-size: 13px;
+    }
+    button:hover { background: #3b7df8; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+    section {
+      background: #1a1e28; border: 1px solid #262c3a; border-radius: 10px;
+      padding: 14px; min-height: 120px;
+    }
+    h2 { font-size: 14px; margin: 0 0 10px; color: #c9d1de; }
+    #chat { grid-column: 1 / -1; }
+    .empty { color: #7d8798; font-size: 13px; }
+    .host { padding: 8px 0; border-bottom: 1px solid #262c3a; }
+    .host:last-child { border-bottom: 0; }
+    .host-title { font-weight: 600; }
+    .host-meta { color: #9aa3b2; font-size: 12px; margin-top: 2px; }
+    .badge { border-radius: 4px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+    .badge.ok { background: #1d5c3a; color: #8ee6b0; }
+    .badge.err { background: #5c1d1d; color: #f0a3a3; }
+    .chip {
+      display: inline-block; background: #232a3a; border-radius: 6px;
+      padding: 3px 9px; margin: 0 6px 6px 0; font-size: 12px; font-family: Consolas, monospace;
+    }
+    #messages {
+      height: 220px; overflow-y: auto; border: 1px solid #262c3a;
+      border-radius: 8px; padding: 10px; margin-bottom: 10px; font-size: 13px; white-space: pre-wrap;
+    }
+    .msg { margin-bottom: 8px; }
+    .msg.user { color: #9fc6ff; }
+    form { display: flex; gap: 8px; }
+    input {
+      flex: 1; background: #12141a; color: #e6e8ee; border: 1px solid #262c3a;
+      border-radius: 6px; padding: 8px 10px;
+    }
+    input:focus { outline: 1px solid #2b6de8; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AgentBridge 客户端</h1>
+    <span id="health">正在连接 backend…</span>
+    <button id="refresh">刷新宿主</button>
+  </header>
+  <main>
+    <section id="hosts">
+      <h2>软件宿主</h2>
+      <div id="host-list">加载中…</div>
+    </section>
+    <section id="tools">
+      <h2>Agent 工具</h2>
+      <div id="tool-list">加载中…</div>
+    </section>
+    <section id="chat">
+      <h2>对话</h2>
+      <div id="messages"></div>
+      <form id="chat-form">
+        <input id="chat-input" placeholder="输入问题，例如：帮我总结当前 Blender 场景" autocomplete="off">
+        <button type="submit">发送</button>
+      </form>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function loadHealth() {
+      try {
+        const res = await fetch("/health");
+        const data = await res.json();
+        $("health").textContent = `backend ${data.version} · ${data.provider}/${data.model}`;
+      } catch (err) {
+        $("health").textContent = "backend 未连接";
+      }
+    }
+
+    async function loadHosts() {
+      $("host-list").textContent = "加载中…";
+      $("tool-list").textContent = "加载中…";
+      try {
+        const res = await fetch("/hosts");
+        const data = await res.json();
+        renderHosts(data.hosts);
+        renderTools(data.tools);
+      } catch (err) {
+        $("host-list").innerHTML = '<p class="empty">无法连接 backend</p>';
+        $("tool-list").innerHTML = '<p class="empty">无法连接 backend</p>';
+      }
+    }
+
+    function renderHosts(hosts) {
+      const box = $("host-list");
+      if (!hosts.length) {
+        box.innerHTML = '<p class="empty">没有发现软件宿主。请在目标软件（如 Blender）中启动适配器。</p>';
+        return;
+      }
+      box.innerHTML = "";
+      for (const host of hosts) {
+        const card = document.createElement("div");
+        card.className = "host";
+        const status = host.status || "unknown";
+        card.innerHTML =
+          `<div class="host-title">${host.product} ${host.product_version}` +
+          `<span class="badge ${status === "ok" ? "ok" : "err"}">${status}</span></div>` +
+          `<div class="host-meta">${host.host_kind} · ${host.host_id} · ${host.endpoint}</div>`;
+        box.appendChild(card);
+      }
+    }
+
+    function renderTools(tools) {
+      const box = $("tool-list");
+      if (!tools.length) {
+        box.innerHTML = '<p class="empty">暂无工具</p>';
+        return;
+      }
+      box.innerHTML = "";
+      for (const name of tools) {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = name;
+        box.appendChild(chip);
+      }
+    }
+
+    function appendMessage(role, text) {
+      const box = $("messages");
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      div.textContent = (role === "user" ? "你：" : "助手：") + text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    $("refresh").addEventListener("click", loadHosts);
+
+    $("chat-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const input = $("chat-input");
+      const message = input.value.trim();
+      if (!message) return;
+      input.value = "";
+      appendMessage("user", message);
+      appendMessage("assistant", "正在思考…");
+      try {
+        const res = await fetch("/chat/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, mode: "standard" }),
+        });
+        const data = await res.json();
+        const text = data.reply_text || data.knowledge_warning || "（无回复）";
+        const last = $("messages").lastElementChild;
+        last.textContent = "助手：" + text;
+        if (data.knowledge_grounded === false) {
+          last.textContent += "\n（未核验来源）";
+        }
+      } catch (err) {
+        const last = $("messages").lastElementChild;
+        last.textContent = "助手：请求失败：" + err;
+      }
+    });
+
+    loadHealth();
+    loadHosts();
+    setInterval(loadHosts, 10000);
+  </script>
+</body>
+</html>

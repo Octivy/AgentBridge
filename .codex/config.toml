@@ -1,0 +1,20 @@
+# Project-scoped Codex MCP configuration. Codex loads this only for trusted projects.
+[mcp_servers.cadmcp]
+command = "powershell"
+args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/start-cadmcp.ps1"]
+env_vars = ["CADMCP_BRIDGE_URL", "CADMCP_BRIDGE_TOKEN", "CADCOPILOT_LOCAL_BRIDGE_URL", "CADCOPILOT_LOCAL_BRIDGE_TOKEN"]
+enabled = true
+required = false
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+default_tools_approval_mode = "writes"
+
+[mcp_servers.hostmcp]
+command = "powershell"
+args = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/start-hostmcp.ps1"]
+env_vars = ["HOSTMCP_REGISTRY_DIR", "HOSTMCP_TRANSPORT", "HOSTMCP_HOST", "HOSTMCP_PORT"]
+enabled = true
+required = false
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+default_tools_approval_mode = "writes"

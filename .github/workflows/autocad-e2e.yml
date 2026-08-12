@@ -1,0 +1,20 @@
+name: AutoCAD real E2E
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * 1-5"
+
+jobs:
+  autocad-transaction-e2e:
+    runs-on: [self-hosted, windows, autocad-2024, interactive-desktop]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e . pywin32
+      - run: dotnet restore AgentBridge.sln
+      - run: dotnet build AgentBridge.sln -c Release --no-restore
+      - run: .\install.ps1 -Configuration Release
+      - run: python scripts/test_cadmcp_autocad_e2e.py

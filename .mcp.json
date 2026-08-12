@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "cadmcp": {
+      "type": "stdio",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/start-cadmcp.ps1"
+      ],
+      "env": {}
+    },
+    "hostmcp": {
+      "type": "stdio",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/start-hostmcp.ps1"
+      ],
+      "env": {}
+    }
+  }
+}

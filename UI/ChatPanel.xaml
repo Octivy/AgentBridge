@@ -1,0 +1,1232 @@
+<UserControl x:Class="AgentBridge.UI.ChatPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="388"
+             Background="#1E1E1E">
+  <UserControl.Resources>
+    <SolidColorBrush x:Key="ShellBrush" Color="#1E1E1E" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#1E1E1E" />
+    <SolidColorBrush x:Key="SurfaceAltBrush" Color="#232323" />
+    <SolidColorBrush x:Key="SurfaceComposerBrush" Color="#1E1E1E" />
+    <SolidColorBrush x:Key="SurfaceInputBrush" Color="#1E1E1E" />
+    <SolidColorBrush x:Key="SurfaceRailBrush" Color="#252526" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#3A3D41" />
+    <SolidColorBrush x:Key="BorderSoftBrush" Color="#323438" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#0E639C" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#1A7FC5" />
+    <SolidColorBrush x:Key="AccentStrongBrush" Color="#2D9BF0" />
+    <SolidColorBrush x:Key="InputFocusBorderBrush" Color="#58A6FF" />
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F3F3F3" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C8CDD4" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#8B949E" />
+
+    <Style TargetType="ScrollBar">
+      <Setter Property="Width" Value="6" />
+      <Setter Property="Height" Value="6" />
+      <Setter Property="Margin" Value="2,0,0,0" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style TargetType="Thumb">
+      <Setter Property="Background" Value="#4B5561" />
+    </Style>
+
+    <Style x:Key="TopActionButtonStyle" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="5,3" />
+      <Setter Property="Margin" Value="0,0,2,0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="MinWidth" Value="24" />
+    </Style>
+
+    <Style x:Key="ToolIconButtonStyle" TargetType="Button">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="#1C2024" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderSoftBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ToolButtonChrome"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ToolButtonChrome" Property="Background" Value="#2A2D2A" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="ToolButtonChrome" Property="Background" Value="#333630" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="ComposerActionButtonStyle" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ComposerButtonChrome"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="ComposerButtonChrome" Property="Background" Value="#2A2D2A" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="ComposerButtonChrome" Property="Background" Value="#333630" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="ToolbarToolButtonStyle" TargetType="Button" BasedOn="{StaticResource ComposerActionButtonStyle}">
+      <Setter Property="Width" Value="30" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Margin" Value="0,0,2,0" />
+      <Setter Property="Background" Value="#1C2024" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderSoftBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <Style x:Key="ModelToggleButtonStyle" TargetType="Button" BasedOn="{StaticResource ComposerActionButtonStyle}">
+      <Setter Property="Width" Value="Auto" />
+      <Setter Property="MinWidth" Value="88" />
+      <Setter Property="Height" Value="28" />
+      <Setter Property="Padding" Value="6,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+
+    <Style x:Key="PopupMenuItemButtonStyle" TargetType="Button">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Padding" Value="8,7" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="PopupItemChrome"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="PopupItemChrome" Property="Background" Value="#2A2D2A" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="PopupItemChrome" Property="Background" Value="#333630" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="FooterPopupMenuItemStyle" TargetType="{x:Type MenuItem}">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type MenuItem}">
+            <Border x:Name="FooterMenuItemChrome"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="0"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter ContentSource="Header"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="FooterMenuItemChrome" Property="Background" Value="#2A2D2A" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+                <Setter Property="Cursor" Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="FooterActionButtonStyle" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Margin" Value="0,0,14,0" />
+    </Style>
+
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+      <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="MinWidth" Value="50" />
+      <Setter Property="Height" Value="24" />
+    </Style>
+
+    <Style x:Key="DarkComboBoxItemStyle" TargetType="ComboBoxItem">
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+      <Setter Property="Background" Value="#1F211F" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="ComboBoxItemChrome"
+                    Background="{TemplateBinding Background}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="ComboBoxItemChrome" Property="Background" Value="#2A2D2A" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="ComboBoxItemChrome" Property="Background" Value="#333630" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="DarkComboBoxStyle" TargetType="ComboBox">
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+      <Setter Property="Background" Value="#2B2D2B" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="MinHeight" Value="34" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="ItemContainerStyle" Value="{StaticResource DarkComboBoxItemStyle}" />
+    </Style>
+
+    <Style x:Key="SelectorFieldButtonStyle" TargetType="Button">
+      <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+      <Setter Property="Background" Value="#1E1E1E" />
+      <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="10,0" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="SelectorButtonChrome"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}">
+              <ContentPresenter HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                Margin="{TemplateBinding Padding}" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="SelectorButtonChrome" Property="BorderBrush" Value="{StaticResource AccentStrongBrush}" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="SelectorButtonChrome" Property="Background" Value="#202225" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid Background="{StaticResource ShellBrush}">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <Border Grid.Row="0"
+            x:Name="HeaderRegion"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="10,7">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="0" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock x:Name="StatusText"
+                     Margin="0,1,12,0"
+                     Text="就绪"
+                     FontSize="11"
+                     Visibility="Collapsed"
+                     Foreground="{StaticResource TextSecondaryBrush}" />
+        </StackPanel>
+
+        <Border x:Name="ConversationTabsRegion"
+                Grid.Column="1"
+                Margin="0,0,10,0"
+                Background="Transparent">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                        VerticalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="ConversationTabsPanel"
+                        Orientation="Horizontal" />
+          </ScrollViewer>
+        </Border>
+
+        <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    VerticalAlignment="Center">
+          <Button Content="+"
+                  Style="{StaticResource TopActionButtonStyle}"
+                  ToolTip="新会话"
+                  Click="HeaderNewConversation_Click" />
+          <Button x:Name="HeaderHistoryButton"
+                  Content="◷"
+                  Style="{StaticResource TopActionButtonStyle}"
+                  ToolTip="历史记录"
+                  Click="HeaderTaskCenter_Click" />
+          <Button x:Name="HeaderSettingsButton"
+                  Content="⚙"
+                  Style="{StaticResource TopActionButtonStyle}"
+                  ToolTip="设置"
+                  Click="HeaderSettings_Click" />
+          <Button Content="□"
+                  Style="{StaticResource TopActionButtonStyle}"
+                  ToolTip="展开"
+                  Click="HeaderExpand_Click" />
+          <Button Content="×"
+                  Style="{StaticResource TopActionButtonStyle}"
+                  ToolTip="关闭"
+                  Margin="0"
+                  Click="HeaderClose_Click" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1"
+            x:Name="ConversationRegion"
+            Padding="12,10,8,0"
+            Background="{StaticResource ShellBrush}">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer x:Name="MessageScroller"
+                      Grid.Row="0"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Background="Transparent">
+          <StackPanel x:Name="MessageList" Margin="0,0,6,12" />
+        </ScrollViewer>
+
+        <Border Grid.Row="1"
+                x:Name="TaskProgressRegion"
+                Visibility="Collapsed"
+                Margin="0,0,6,12"
+          Background="{StaticResource SurfaceBrush}"
+          BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="1"
+                Padding="12,10,12,6">
+          <ContentControl x:Name="TaskProgressHost" HorizontalContentAlignment="Stretch" />
+        </Border>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1"
+            x:Name="TaskCenterDrawer"
+            Panel.ZIndex="5"
+            VerticalAlignment="Top"
+            Visibility="Collapsed"
+            Margin="12,42,12,10"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="12"
+            MaxHeight="360">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <ContentControl x:Name="TaskCenterHost"
+                        HorizontalContentAlignment="Stretch" />
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="2"
+            x:Name="DiagnosticsDrawer"
+            Visibility="Collapsed"
+            Margin="12,0,12,10"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="12"
+            MaxHeight="360">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <ContentControl x:Name="DiagnosticsHost"
+                        HorizontalContentAlignment="Stretch" />
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="2"
+            x:Name="ReviewDrawer"
+            Visibility="Collapsed"
+            Margin="12,0,12,10"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="12"
+            MaxHeight="380">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <ContentControl x:Name="ReviewHost"
+                        HorizontalContentAlignment="Stretch" />
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="2"
+            x:Name="ContextDrawer"
+            Visibility="Collapsed"
+            Margin="12,0,12,10"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="12"
+            MaxHeight="360">
+      <ScrollViewer VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+        <ContentControl x:Name="ContextHost"
+                        HorizontalContentAlignment="Stretch" />
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="2"
+            x:Name="ConfigDrawer"
+            Visibility="Collapsed"
+            Margin="12,0,12,10"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Padding="12">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="设置"
+                   FontSize="12"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource TextPrimaryBrush}" />
+        <StackPanel Grid.Row="1" Margin="0,10,0,0">
+          <TextBlock Text="连接方式"
+                     FontSize="10.5"
+                     Foreground="{StaticResource TextMutedBrush}" />
+          <ComboBox x:Name="ConnectionModeBox"
+                    Margin="0,6,0,0"
+                    Style="{StaticResource DarkComboBoxStyle}"
+                    SelectionChanged="ConnectionModeBox_SelectionChanged"
+                    Background="#0F0F10">
+            <ComboBoxItem Tag="service" Content="智能体 / copilot backend" />
+            <ComboBoxItem Tag="standard" Content="标准 / 单次与简单任务" />
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="2"
+                    x:Name="AgentApprovalRow"
+                    Margin="0,10,0,0">
+          <TextBlock Text="智能体权限"
+                     FontSize="10.5"
+                     Foreground="{StaticResource TextMutedBrush}" />
+          <ComboBox x:Name="AgentApprovalBox"
+                    Margin="0,6,0,0"
+                    Style="{StaticResource DarkComboBoxStyle}"
+                    SelectionChanged="AgentApprovalBox_SelectionChanged"
+                    Background="#0F0F10">
+            <ComboBoxItem Tag="annotate" Content="请求批准" />
+            <ComboBoxItem Tag="execute" Content="替我执行" />
+            <ComboBoxItem Tag="full" Content="完全批准" />
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="3" Margin="0,10,0,0">
+          <TextBlock Text="服务地址"
+                     FontSize="10.5"
+                     Foreground="{StaticResource TextMutedBrush}" />
+          <TextBox x:Name="ApiBaseUrlBox"
+                   Margin="0,6,0,0"
+                   TextChanged="ApiBaseUrlBox_TextChanged"
+                   Background="#1E1E1E"
+                   BorderBrush="{StaticResource BorderBrush}"
+                   BorderThickness="1"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   Padding="10,7"
+                   FontSize="12" />
+        </StackPanel>
+        <StackPanel Grid.Row="4"
+                    x:Name="ProviderRow"
+                    Margin="0,10,0,0">
+          <TextBlock Text="模型提供商"
+                     FontSize="10.5"
+                     Foreground="{StaticResource TextMutedBrush}" />
+          <ComboBox x:Name="ProviderBox"
+                    Margin="0,6,0,0"
+                    Style="{StaticResource DarkComboBoxStyle}"
+                    SelectionChanged="ProviderBox_SelectionChanged"
+                    Background="#0F0F10">
+            <ComboBoxItem Tag="openai" Content="OpenAI" />
+            <ComboBoxItem Tag="deepseek" Content="DeepSeek" />
+            <ComboBoxItem Tag="minimax" Content="MiniMax" />
+            <ComboBoxItem Tag="anthropic" Content="Anthropic / Claude" />
+            <ComboBoxItem Tag="openai_compatible" Content="OpenAI Compatible" />
+            <ComboBoxItem Tag="ollama" Content="Ollama / 本地模型" />
+            <ComboBoxItem Tag="enterprise_private" Content="企业内网模型" />
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="5"
+                    x:Name="DirectApiKeyRow"
+                    Margin="0,10,0,0">
+          <TextBlock x:Name="DirectApiKeyLabel"
+                     Text="API Key"
+                     FontSize="10.5"
+                     Foreground="{StaticResource TextMutedBrush}" />
+          <TextBox x:Name="DirectApiKeyBox"
+                   Margin="0,6,0,0"
+                   Background="#1E1E1E"
+                   BorderBrush="{StaticResource BorderBrush}"
+                   BorderThickness="1"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   Padding="10,7"
+                   FontSize="12" />
+        </StackPanel>
+        <StackPanel Grid.Row="6"
+                    x:Name="DirectApiBaseUrlRow"
+                    Margin="0,10,0,0">
+          <TextBlock Text="OpenAI Base URL"
+                     FontSize="10.5"
+                     Foreground="{StaticResource TextMutedBrush}" />
+          <TextBox x:Name="DirectApiBaseUrlBox"
+                   Margin="0,6,0,0"
+                   Background="#1E1E1E"
+                   BorderBrush="{StaticResource BorderBrush}"
+                   BorderThickness="1"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   Padding="10,7"
+                   FontSize="12" />
+        </StackPanel>
+        <StackPanel Grid.Row="7"
+                    x:Name="DirectModelRow"
+                    Margin="0,10,0,0">
+          <TextBlock x:Name="DirectModelLabel"
+                     Text="直连模型"
+                     FontSize="10.5"
+                     Foreground="{StaticResource TextMutedBrush}" />
+          <TextBox x:Name="DirectModelBox"
+                   Margin="0,6,0,0"
+                   Background="#1E1E1E"
+                   BorderBrush="{StaticResource BorderBrush}"
+                   BorderThickness="1"
+                   Foreground="{StaticResource TextPrimaryBrush}"
+                   Padding="10,7"
+                   FontSize="12" />
+        </StackPanel>
+        <TextBlock Grid.Row="8"
+                   x:Name="ConfigHintText"
+                   Margin="0,10,0,0"
+                   Text="模型、API Key 与连接测试统一在这里配置。输入区模型下拉只负责切换当前模型。"
+                   FontSize="10.5"
+                   TextWrapping="Wrap"
+                   Foreground="{StaticResource TextMutedBrush}" />
+        <StackPanel Grid.Row="9"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,12,0,0">
+          <Button Content="连接诊断"
+                  Style="{StaticResource TopActionButtonStyle}"
+                  Padding="8,3"
+                  Click="OpenDiagnosticsFromSettings_Click" />
+        </StackPanel>
+        <Button Grid.Row="10"
+                Content="保存配置"
+                Style="{StaticResource PrimaryButtonStyle}"
+                Margin="0,12,0,0"
+                HorizontalAlignment="Right"
+                Click="SaveConfig_Click" />
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="3"
+            x:Name="ToolBarRegion"
+            Margin="12,0,12,8"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            Padding="4,3">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <ItemsControl x:Name="PinnedToolBar"
+                      Grid.Column="0"
+                      AllowDrop="True"
+                      PreviewDragOver="PinnedToolBar_PreviewDragOver"
+                      Drop="PinnedToolBar_Drop">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Button Content="{Binding Glyph}"
+                      Tag="{Binding Key}"
+                      ToolTip="{Binding Name}"
+                      Style="{StaticResource ToolIconButtonStyle}"
+                      PreviewMouseLeftButtonDown="PinnedToolButton_PreviewMouseLeftButtonDown"
+                      MouseMove="PinnedToolButton_MouseMove"
+                      Click="PinnedToolButton_Click">
+                <Button.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="移出常用工具栏"
+                              Click="RemovePinnedTool_Click" />
+                  </ContextMenu>
+                </Button.ContextMenu>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Grid.Column="1">
+          <Button x:Name="ToolboxToggleButton"
+                  Content="专业技能"
+                  Style="{StaticResource ToolbarToolButtonStyle}"
+                  MinWidth="72"
+                  Padding="10,0"
+                  ToolTip="打开 AgentBridge 专业技能面板"
+                  Click="ToolboxToggleButton_Click" />
+          <Popup x:Name="ToolboxPopup"
+                 PlacementTarget="{Binding ElementName=ToolBarRegion}"
+                 Placement="Top"
+                 StaysOpen="False"
+                 AllowsTransparency="True"
+                 PopupAnimation="Fade"
+                 Closed="ToolboxPopup_Closed">
+            <Border Width="{Binding ElementName=ToolBarRegion, Path=ActualWidth}"
+                    Margin="0,0,0,8"
+                    Background="#17191C"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    Padding="4,3">
+              <StackPanel>
+                <TextBlock Margin="2,0,0,4"
+                           Text="开放式工具技能包"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Margin="2,0,0,6"
+                           Text="从这里拖到下方常用工具栏；上方集合中的图标会保留。"
+                           FontSize="9.5"
+                           Foreground="{StaticResource TextMutedBrush}" />
+                <ItemsControl x:Name="ToolboxList">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Content="{Binding Glyph}"
+                              Width="28"
+                              Height="28"
+                              Margin="0,0,4,0"
+                              Tag="{Binding Key}"
+                              Style="{StaticResource ToolIconButtonStyle}"
+                              ToolTip="{Binding Description}"
+                              PreviewMouseLeftButtonDown="ToolboxItem_PreviewMouseLeftButtonDown"
+                              MouseMove="ToolboxItem_MouseMove"
+                              Click="ToolboxItem_Click" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </Popup>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="4"
+            x:Name="ComposerRegion"
+            Margin="12,0,12,8"
+            Background="{StaticResource SurfaceInputBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
+            SizeChanged="ComposerRegion_SizeChanged"
+          PreviewMouseLeftButtonDown="ComposerRegion_PreviewMouseLeftButtonDown"
+            Padding="0">
+      <Grid>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                x:Name="AttachmentShelf"
+                Visibility="Collapsed"
+          Margin="6,6,6,0"
+                Background="{StaticResource SurfaceRailBrush}"
+                BorderBrush="{StaticResource BorderSoftBrush}"
+                BorderThickness="1"
+          Padding="7,6">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="40" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Border Width="32"
+                    Height="32"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1"
+                    Background="#1E1E1E">
+              <Grid>
+                <Image x:Name="ImagePreview"
+                       Stretch="UniformToFill"
+                       Margin="1" />
+                <TextBlock x:Name="AttachmentGlyphText"
+                           Visibility="Collapsed"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="9.5"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+              </Grid>
+            </Border>
+
+            <StackPanel Grid.Column="1" Margin="8,0,8,0" VerticalAlignment="Center">
+              <TextBlock x:Name="AttachmentTitleText"
+                         FontSize="11"
+                         FontWeight="SemiBold"
+                         Foreground="{StaticResource TextPrimaryBrush}" />
+              <TextBlock x:Name="AttachmentMetaText"
+                         Margin="0,2,0,0"
+                         FontSize="9.5"
+                         TextWrapping="Wrap"
+                         Foreground="{StaticResource TextMutedBrush}" />
+            </StackPanel>
+
+            <Button Grid.Column="2"
+                    Content="×"
+                    Style="{StaticResource TopActionButtonStyle}"
+                    Margin="0"
+                    VerticalAlignment="Center"
+                    Click="RemoveAttachment_Click" />
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1"
+          Margin="6,6,6,0"
+          Background="Transparent"
+          BorderBrush="Transparent"
+          BorderThickness="0"
+          Padding="8,8,8,4">
+          <Grid>
+            <TextBox x:Name="InputBox"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     MinLines="3"
+                     MaxLines="8"
+                     VerticalScrollBarVisibility="Auto"
+                     Foreground="{StaticResource TextPrimaryBrush}"
+                     CaretBrush="{StaticResource InputFocusBorderBrush}"
+                     FontSize="13"
+                     GotFocus="InputBox_GotFocus"
+                     LostFocus="InputBox_LostFocus"
+                     TextChanged="InputBox_TextChanged" />
+            <TextBlock x:Name="InputPlaceholderText"
+                       Text="输入消息、绘图指令或补充上下文..."
+                       Margin="2,2,24,2"
+                       VerticalAlignment="Top"
+                       Foreground="{StaticResource TextMutedBrush}"
+                       IsHitTestVisible="False" />
+          </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="8,4,8,8">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <Button Grid.Column="0"
+                  x:Name="AttachButton"
+                  Content="+"
+                  Style="{StaticResource ComposerActionButtonStyle}"
+                  ToolTip="上传图片或文件"
+                  Click="OpenAttachmentMenu_Click">
+            <Button.ContextMenu>
+              <ContextMenu x:Name="AttachmentMenu">
+                <MenuItem Header="上传图片"
+                          Click="UploadImage_Click" />
+                <MenuItem Header="上传文本文件"
+                          Click="UploadFile_Click" />
+                <MenuItem Header="粘贴截图"
+                          Click="PasteImageMenu_Click" />
+              </ContextMenu>
+            </Button.ContextMenu>
+          </Button>
+
+          <Button Grid.Column="1"
+                  x:Name="CodeModeButton"
+                  Content="标准 ▾"
+                  Style="{StaticResource ComposerActionButtonStyle}"
+                  Width="78"
+                  ToolTip="选择标准 / 智能体 / 计划模式"
+                  Click="CodeModeButton_Click" />
+
+            <Grid Grid.Column="2"
+                  Margin="2,0,0,0"
+                  HorizontalAlignment="Left">
+              <Button x:Name="ModelToggleButton"
+                      Style="{StaticResource ModelToggleButtonStyle}"
+                     ToolTip="切换底层模型"
+                      Click="ModelToggleButton_Click">
+                <DockPanel LastChildFill="False">
+                  <TextBlock x:Name="ModelLabelText"
+                             Visibility="Collapsed"
+                             Text="模型" />
+                  <TextBlock x:Name="ModelSelectorText"
+                             VerticalAlignment="Center"
+                             Foreground="{StaticResource TextSecondaryBrush}"
+                             FontSize="10.8"
+                             FontWeight="Normal"
+                             Text="MiniMax-M2.7" />
+                  <TextBlock Margin="5,0,0,0"
+                             VerticalAlignment="Center"
+                             Foreground="{StaticResource TextSecondaryBrush}"
+                             Text="▾" />
+                </DockPanel>
+              </Button>
+              <Popup x:Name="ModelSelectorPopup"
+                     PlacementTarget="{Binding ElementName=ComposerRegion}"
+                     Placement="Relative"
+                     HorizontalOffset="0"
+                     Opened="ModelSelectorPopup_Opened"
+                     StaysOpen="False"
+                     AllowsTransparency="True"
+                     PopupAnimation="Fade">
+                <Border x:Name="ModelSelectorPopupShell"
+                  Width="186"
+                        Background="#17191C"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="8">
+                  <Grid>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="2,0,2,6">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+
+                      <TextBlock Text="LLM 引擎"
+                                 VerticalAlignment="Center"
+                                 FontSize="10.8"
+                                 FontWeight="SemiBold"
+                                 Foreground="{StaticResource TextPrimaryBrush}" />
+                    </Grid>
+
+                    <StackPanel Grid.Row="1" x:Name="ModelSelectorPanel" />
+                  </Grid>
+                </Border>
+              </Popup>
+              <Popup x:Name="HeaderSettingsPopup"
+                     PlacementTarget="{Binding ElementName=ComposerRegion}"
+                     Placement="Relative"
+                     Opened="HeaderSettingsPopup_Opened"
+                StaysOpen="True"
+                     AllowsTransparency="True"
+                     PopupAnimation="Fade">
+                <Border x:Name="HeaderSettingsPopupShell"
+                  Width="360"
+                        Background="#17191C"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="16">
+                  <Grid>
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                      <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               x:Name="ProfileDialogTitleText"
+                               Text="模型设置"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+
+                    <Grid Grid.Row="1"
+                          x:Name="ProfileProviderRow"
+                          Margin="0,10,0,0"
+                          HorizontalAlignment="Stretch">
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+                       <TextBlock Text="提供商"
+                                 Grid.Row="0"
+                                 FontSize="10.5"
+                                 Foreground="{StaticResource TextMutedBrush}" />
+                      <Grid Grid.Row="1" Margin="0,6,0,0">
+                        <Button x:Name="ProfileProviderButton"
+                                Style="{StaticResource SelectorFieldButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                Width="{Binding ActualWidth, ElementName=ProfileApiKeyBox}"
+                                Click="ProfileProviderButton_Click">
+                          <DockPanel LastChildFill="True">
+                            <TextBlock x:Name="ProfileProviderButtonText"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="MiniMax" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                        Text="▾" />
+                          </DockPanel>
+                        </Button>
+                        <Popup x:Name="ProfileProviderPopup"
+                               PlacementTarget="{Binding ElementName=ProfileProviderButton}"
+                               Placement="Bottom"
+                               StaysOpen="False"
+                               AllowsTransparency="True"
+                               PopupAnimation="Fade">
+                          <Border MinWidth="{Binding ActualWidth, ElementName=ProfileProviderButton}"
+                                  Background="#17191C"
+                                  BorderBrush="{StaticResource BorderBrush}"
+                                  BorderThickness="1"
+                                  CornerRadius="8"
+                                  Padding="6">
+                            <StackPanel x:Name="ProfileProviderOptionsPanel" />
+                          </Border>
+                        </Popup>
+                        <ComboBox x:Name="ProfileProviderBox"
+                                  Visibility="Collapsed"
+                                  SelectedValuePath="Tag"
+                                  SelectionChanged="ProfileProviderBox_SelectionChanged">
+                          <ComboBoxItem Tag="cadcopilot" Content="AgentBridge" />
+                          <ComboBoxItem Tag="openai" Content="OpenAI" />
+                          <ComboBoxItem Tag="deepseek" Content="DeepSeek" />
+                          <ComboBoxItem Tag="minimax" Content="MiniMax" />
+                          <ComboBoxItem Tag="anthropic" Content="Anthropic / Claude" />
+                          <ComboBoxItem Tag="openai_compatible" Content="OpenAI Compatible" />
+                          <ComboBoxItem Tag="ollama" Content="Ollama / 本地模型" />
+                          <ComboBoxItem Tag="enterprise_private" Content="企业内网模型" />
+                        </ComboBox>
+                      </Grid>
+                    </Grid>
+
+                    <Grid Grid.Row="2" Margin="0,10,0,0" HorizontalAlignment="Stretch">
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+                      <TextBlock x:Name="ProfileModelNameLabel"
+                                 Grid.Row="0"
+                                Text="模型名称"
+                                 FontSize="10.5"
+                                 Foreground="{StaticResource TextMutedBrush}" />
+                      <Grid Grid.Row="1" Margin="0,6,0,0">
+                        <Button x:Name="ProfileModelNameButton"
+                                Style="{StaticResource SelectorFieldButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                Width="{Binding ActualWidth, ElementName=ProfileApiKeyBox}"
+                                Click="ProfileModelNameButton_Click">
+                          <DockPanel LastChildFill="True">
+                            <TextBlock x:Name="ProfileModelNameButtonText"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       Text="MiniMax-M2.7" />
+                            <TextBlock DockPanel.Dock="Right"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       Text="▾" />
+                          </DockPanel>
+                        </Button>
+                        <Popup x:Name="ProfileModelNamePopup"
+                               PlacementTarget="{Binding ElementName=ProfileModelNameButton}"
+                               Placement="Bottom"
+                               StaysOpen="False"
+                               AllowsTransparency="True"
+                               PopupAnimation="Fade">
+                          <Border MinWidth="{Binding ActualWidth, ElementName=ProfileModelNameButton}"
+                                  Background="#17191C"
+                                  BorderBrush="{StaticResource BorderBrush}"
+                                  BorderThickness="1"
+                                  CornerRadius="8"
+                                  Padding="6">
+                            <StackPanel x:Name="ProfileModelNameOptionsPanel" />
+                          </Border>
+                        </Popup>
+                        <ComboBox x:Name="ProfileModelNameBox"
+                                  Visibility="Collapsed"
+                                  SelectionChanged="ProfileModelNameBox_SelectionChanged" />
+                      </Grid>
+                    </Grid>
+
+                    <Grid Grid.Row="3"
+                          x:Name="ProfileApiKeyRow"
+                          Margin="0,10,0,0"
+                          HorizontalAlignment="Stretch">
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                      </Grid.RowDefinitions>
+                      <TextBlock x:Name="ProfileApiKeyLabel"
+                                 Grid.Row="0"
+                                 Text="API Key"
+                                 FontSize="10.5"
+                                 Foreground="{StaticResource TextMutedBrush}" />
+                      <TextBox x:Name="ProfileApiKeyBox"
+                               Grid.Row="1"
+                               Margin="0,6,0,0"
+                               HorizontalAlignment="Stretch"
+                               Background="#1E1E1E"
+                               BorderBrush="{StaticResource BorderBrush}"
+                               BorderThickness="1"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Padding="10,7"
+                               MinHeight="34"
+                               FontSize="12"
+                               TextChanged="ProfileApiKeyBox_TextChanged" />
+                    </Grid>
+
+                        <Grid Grid.Row="4" Margin="0,16,0,0">
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+
+                      <Button Grid.Column="0"
+                              x:Name="TestConnectionButton"
+                              Content="测试"
+                              Style="{StaticResource TopActionButtonStyle}"
+                              Padding="0"
+                            Width="48"
+                              Click="TestConnection_Click" />
+
+                      <TextBlock Grid.Column="1"
+                                 x:Name="ProfileActionStatusText"
+                                 Margin="12,0,0,0"
+                                 VerticalAlignment="Center"
+                                 Foreground="{StaticResource TextMutedBrush}"
+                                 FontSize="10.5"
+                                 Text="" />
+
+                          <Button Grid.Column="2"
+                              Content="取消"
+                              Style="{StaticResource TopActionButtonStyle}"
+                              Padding="0"
+                            Width="48"
+                              Click="CloseModelSettings_Click" />
+
+                          <Button Grid.Column="3"
+                              x:Name="SaveProfileButton"
+                              Content="保存"
+                              Style="{StaticResource PrimaryButtonStyle}"
+                            Width="60"
+                              Margin="8,0,0,0"
+                              IsEnabled="False"
+                              Click="SaveProfile_Click" />
+                    </Grid>
+                  </Grid>
+                </Border>
+              </Popup>
+              <ComboBox x:Name="ModelSelector"
+                        Visibility="Collapsed"
+                        SelectionChanged="ModelSelector_SelectionChanged"
+                        LostFocus="ModelSelector_LostFocus" />
+            </Grid>
+
+            <Button Grid.Column="3"
+                    x:Name="AgentApprovalComposerButton"
+                    Content="请求批准 ▾"
+                    HorizontalAlignment="Left"
+                    Margin="8,0,0,0"
+                    Style="{StaticResource ComposerActionButtonStyle}"
+                    Width="96"
+                    ToolTip="智能体权限"
+                    Visibility="Collapsed"
+                    Click="AgentApprovalComposerButton_Click" />
+
+            <Button Grid.Column="4"
+                    x:Name="SendButton"
+                    Content="发送"
+                    HorizontalAlignment="Right"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Click="Send_Click" />
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="5"
+            x:Name="FooterStatusBar"
+            Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="12,6">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <Button x:Name="FooterModeText"
+                Content=""
+                Style="{StaticResource FooterActionButtonStyle}"
+                Click="FooterMode_Click" />
+
+        <Button Grid.Column="1"
+                x:Name="FooterConnectionButton"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                Padding="0"
+                Cursor="Hand"
+                Click="FooterConnection_Click">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <Ellipse x:Name="ConnectionIndicator"
+                     Width="7"
+                     Height="7"
+                     Margin="0,0,6,0"
+                     Fill="#4EC9B0" />
+            <TextBlock x:Name="FooterConnectionText"
+                       Text="就绪"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="12" />
+          </StackPanel>
+        </Button>
+
+        <Button Grid.Column="2"
+                x:Name="FooterNotificationButton"
+                Content="🔔"
+                Style="{StaticResource FooterActionButtonStyle}"
+                Visibility="Collapsed"
+                Margin="12,0,0,0"
+                ToolTip="通知"
+                Click="FooterNotification_Click" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

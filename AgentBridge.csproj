@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>AgentBridge</RootNamespace>
+    <AssemblyName>AgentBridge</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AutoCADVersion Condition="'$(AutoCADVersion)' == ''">2024</AutoCADVersion>
+    <AutoCADSeries Condition="'$(AutoCADVersion)' == '2014'">R19.1</AutoCADSeries>
+    <AutoCADSeries Condition="'$(AutoCADVersion)' != '2014'">R24.3</AutoCADSeries>
+    <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2014' and Exists('D:\\Program Files\\Autodesk\\AutoCAD 2014\\acmgd.dll')">D:\\Program Files\\Autodesk\\AutoCAD 2014</AutoCADInstallDir>
+    <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2014'">C:\\Program Files\\Autodesk\\AutoCAD 2014</AutoCADInstallDir>
+    <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2016' and Exists('C:\\Program Files\\Autodesk\\AutoCAD 2016\\acmgd.dll')">C:\\Program Files\\Autodesk\\AutoCAD 2016</AutoCADInstallDir>
+    <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and Exists('D:\\Program Files\\Autodesk\\AutoCAD 2024\\acmgd.dll')">D:\\Program Files\\Autodesk\\AutoCAD 2024</AutoCADInstallDir>
+    <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == ''">C:\\Program Files\\Autodesk\\AutoCAD 2024</AutoCADInstallDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="AgentBridge.Tests\**\*.cs" />
+    <Compile Remove="client\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="acmgd">
+      <HintPath>$(AutoCADInstallDir)\\acmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="acdbmgd">
+      <HintPath>$(AutoCADInstallDir)\\acdbmgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="accoremgd">
+      <HintPath>$(AutoCADInstallDir)\\accoremgd.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="AcWindows">
+      <HintPath>$(AutoCADInstallDir)\\AcWindows.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="All" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Net.Http" Version="4.3.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Resources\system_prompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Resources\system_prompt.txt</Link>
+    </None>
+  </ItemGroup>
+</Project>

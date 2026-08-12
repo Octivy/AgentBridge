@@ -1,0 +1,419 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-23T18:05:54.504671+00:00",
+  "status": "failed",
+  "checks": [
+    {
+      "check_id": "host_contract",
+      "name": "Codex / MCP Host contract",
+      "status": "passed",
+      "summary": "Project-scoped Codex configuration and write approval policy are present.",
+      "metrics": {
+        "missing_markers": [],
+        "codex_available": true
+      },
+      "recovery_action": ""
+    },
+    {
+      "check_id": "second_host",
+      "name": "Second MCP Host",
+      "status": "blocked",
+      "summary": "Claude Code is installed and project configuration exists, but its project MCP approval/connection is not complete.",
+      "metrics": {
+        "claude_host_available": true,
+        "claude_mcp_configured": true,
+        "claude_mcp_status": "pending_approval"
+      },
+      "recovery_action": "Open Claude Code in this project, approve the project cadmcp server, verify it is connected, then rerun acceptance."
+    },
+    {
+      "check_id": "backend_diagnostics",
+      "name": "Backend five-layer diagnostics",
+      "status": "passed",
+      "summary": "Backend returned 5 diagnostic components with overall status ok.",
+      "metrics": {
+        "overall_status": "ok",
+        "component_ids": [
+          "autocad",
+          "backend",
+          "local_bridge",
+          "mcp",
+          "model_gateway"
+        ],
+        "missing": []
+      },
+      "recovery_action": ""
+    },
+    {
+      "check_id": "mcp_stability",
+      "name": "CADMCP repeated initialization and discovery",
+      "status": "passed",
+      "summary": "20/20 MCP sessions initialized with the exact 13-tool contract.",
+      "metrics": {
+        "planned_attempts": 20,
+        "successful_attempts": 20,
+        "success_rate": 1.0,
+        "attempts": [
+          {
+            "attempt": 1,
+            "ok": true,
+            "latency_ms": 1325,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 2,
+            "ok": true,
+            "latency_ms": 1320,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 3,
+            "ok": true,
+            "latency_ms": 1323,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 4,
+            "ok": true,
+            "latency_ms": 1457,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 5,
+            "ok": true,
+            "latency_ms": 1330,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 6,
+            "ok": true,
+            "latency_ms": 1291,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 7,
+            "ok": true,
+            "latency_ms": 1266,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 8,
+            "ok": true,
+            "latency_ms": 1387,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 9,
+            "ok": true,
+            "latency_ms": 1349,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 10,
+            "ok": true,
+            "latency_ms": 1307,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 11,
+            "ok": true,
+            "latency_ms": 1306,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 12,
+            "ok": true,
+            "latency_ms": 1453,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 13,
+            "ok": true,
+            "latency_ms": 1225,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 14,
+            "ok": true,
+            "latency_ms": 1301,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 15,
+            "ok": true,
+            "latency_ms": 1299,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 16,
+            "ok": true,
+            "latency_ms": 1377,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 17,
+            "ok": true,
+            "latency_ms": 1226,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 18,
+            "ok": true,
+            "latency_ms": 1280,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 19,
+            "ok": true,
+            "latency_ms": 1290,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          },
+          {
+            "attempt": 20,
+            "ok": true,
+            "latency_ms": 1522,
+            "server": "cadmcp",
+            "tool_count": 13,
+            "tool_drift": []
+          }
+        ]
+      },
+      "recovery_action": ""
+    },
+    {
+      "check_id": "provider_stability",
+      "name": "Online model provider",
+      "status": "failed",
+      "summary": "0/10 planned minimax requests succeeded. Remaining calls were skipped after a non-transient credential/configuration error.",
+      "metrics": {
+        "configured_provider": "minimax",
+        "planned_attempts": 10,
+        "attempted": 1,
+        "successful_attempts": 0,
+        "success_rate": 0.0,
+        "attempts": [
+          {
+            "attempt": 1,
+            "ok": false,
+            "latency_ms": 2696,
+            "error_category": "authentication",
+            "error": "MiniMax API Key 不正确，或当前 Key 没有访问权限。"
+          }
+        ]
+      },
+      "recovery_action": "Replace or authorize the configured provider credential, then rerun the 10-call gate."
+    },
+    {
+      "check_id": "bridge_stability",
+      "name": "AutoCAD local bridge",
+      "status": "passed",
+      "summary": "20/20 bridge health and drawing snapshot reads succeeded.",
+      "metrics": {
+        "planned_attempts": 20,
+        "successful_attempts": 20,
+        "success_rate": 1.0,
+        "attempts": [
+          {
+            "attempt": 1,
+            "ok": true,
+            "latency_ms": 798,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 2,
+            "ok": true,
+            "latency_ms": 991,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 3,
+            "ok": true,
+            "latency_ms": 1006,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 4,
+            "ok": true,
+            "latency_ms": 1002,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 5,
+            "ok": true,
+            "latency_ms": 945,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 6,
+            "ok": true,
+            "latency_ms": 1044,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 7,
+            "ok": true,
+            "latency_ms": 1017,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 8,
+            "ok": true,
+            "latency_ms": 1005,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 9,
+            "ok": true,
+            "latency_ms": 991,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 10,
+            "ok": true,
+            "latency_ms": 994,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 11,
+            "ok": true,
+            "latency_ms": 1010,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 12,
+            "ok": true,
+            "latency_ms": 992,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 13,
+            "ok": true,
+            "latency_ms": 1005,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 14,
+            "ok": true,
+            "latency_ms": 873,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 15,
+            "ok": true,
+            "latency_ms": 1129,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 16,
+            "ok": true,
+            "latency_ms": 991,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 17,
+            "ok": true,
+            "latency_ms": 1079,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 18,
+            "ok": true,
+            "latency_ms": 1005,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 19,
+            "ok": true,
+            "latency_ms": 1007,
+            "document_open": true,
+            "snapshot_read": true
+          },
+          {
+            "attempt": 20,
+            "ok": true,
+            "latency_ms": 991,
+            "document_open": true,
+            "snapshot_read": true
+          }
+        ]
+      },
+      "recovery_action": ""
+    }
+  ],
+  "environment": {
+    "platform": "win32",
+    "python": "3.13.7",
+    "autocad_running": true,
+    "backend_port_open": true,
+    "bridge_port_open": true,
+    "ollama_port_open": false,
+    "codex_available": true,
+    "claude_host_available": true,
+    "claude_mcp_configured": true,
+    "claude_mcp_status": "pending_approval",
+    "provider_configuration": {
+      "minimax": true,
+      "openai": false,
+      "anthropic": false,
+      "deepseek": false,
+      "ollama": false
+    }
+  },
+  "secrets_redacted": true
+}

@@ -1,0 +1,26 @@
+{
+  "product": "AgentBridge",
+  "channel": "preview",
+  "version": "0.9.0.622",
+  "released_at": "2026-07-27",
+  "platform": {
+    "os": "Windows x64",
+    "host": "AutoCAD 2024",
+    "series": "R24.3",
+    "framework": ".NET Framework 4.8"
+  },
+  "artifact": {
+    "file": "AgentBridge-0.9.0.622-AutoCAD-2024.zip",
+    "url": "/downloads/AgentBridge-0.9.0.622-AutoCAD-2024.zip",
+    "size_bytes": 427154,
+    "sha256": "e686f3d47d77b70f045c7f21fb101aeff797f3bc8e1654f2cace3a640982fa7f"
+  },
+  "commands": {
+    "health_check": "TESTCOPILOT",
+    "open_panel": "AICHAT"
+  },
+  "stability": {
+    "connector": "automated acceptance passed",
+    "drawing_skills": "preview; real-DWG hardening in progress"
+  }
+}

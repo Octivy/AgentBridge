@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+  Name="AgentBridge"
+  Description="AgentBridge AI assistant for AutoCAD"
+  AppVersion="0.9.0.622"
+  Author="changkun"
+  ProductCode="{7A8D3E2F-1B4C-4D5E-9F6A-0C8B7D2E1A3F}"
+  UpgradeCode="{8B9E4F3A-2C5D-4E6F-A7B8-1D9C0E3F2A4B}">
+
+  <CompanyDetails Name="AgentBridge" Url="https://github.com/Octivy/AgentBridge" />
+
+  <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.3" SeriesMax="R24.3" />
+
+  <Components Description="Main Module">
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD*" />
+    <ComponentEntry AppName="AgentBridge"
+      Version="0.9.0.622"
+      ModuleName="./Contents/AgentBridge.dll"
+      AppDescription="AgentBridge plugin for AutoCAD"
+      LoadOnAutoCADStartup="True"
+      LoadOnCommandInvocation="False" />
+  </Components>
+
+</ApplicationPackage>

@@ -1,0 +1,39 @@
+AgentBridge 0.9.0.622 / AutoCAD 2024 预览版
+================================================
+
+系统要求
+--------
+- Windows 10/11 x64
+- AutoCAD 2024（R24.3）
+- .NET Framework 4.8
+
+安装
+----
+1. 将整个压缩包解压到本地目录，不要直接在压缩包内运行脚本。
+2. 打开 PowerShell，进入解压目录。
+3. 执行：
+   powershell -ExecutionPolicy Bypass -File .\Install-AgentBridge.ps1
+4. 重启 AutoCAD 2024。
+5. 在 AutoCAD 命令行输入 TESTCOPILOT 检查插件，再输入 AICHAT 打开面板。
+
+安装位置
+--------
+%APPDATA%\Autodesk\ApplicationPlugins\AgentBridge.bundle
+
+配置
+----
+配置文件位于：
+%APPDATA%\Autodesk\ApplicationPlugins\AgentBridge.bundle\Contents\agentbridge.config.json
+
+首次安装会为本地 CAD 桥生成随机令牌。重新安装会保留已有配置。
+API Key 不应写入共享压缩包或提交到版本库。
+
+卸载
+----
+powershell -ExecutionPolicy Bypass -File .\Uninstall-AgentBridge.ps1
+
+预览版边界
+----------
+连接器与 CADMCP 基础链路已通过自动化验收。
+外围轮廓、图层统一等写图 Skill 仍需在更多真实 DWG 上验证和硬化，
+不建议直接用于无人值守的生产批处理。

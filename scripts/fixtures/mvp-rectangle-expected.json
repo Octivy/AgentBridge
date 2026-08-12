@@ -1,0 +1,5 @@
+{
+  "semantic_counts": {"wall": 4, "door": 0, "window": 0, "unknown": 0},
+  "outline_area": 24000000,
+  "area_tolerance_ratio": 0.000001
+}
