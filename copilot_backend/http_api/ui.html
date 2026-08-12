@@ -362,6 +362,7 @@
           <button class="sm ghost" data-act="edit">编辑</button>
           ${c.host_id === "sketchup" ? '<button class="sm ghost" data-act="install-skp">一键安装 SketchUp 扩展</button>' : ""}
           ${c.host_id === "blender" ? '<button class="sm ghost" data-act="install-bl">一键安装 Blender 插件</button>' : ""}
+          ${c.host_id === "rhino" ? '<button class="sm ghost" data-act="install-rh">一键安装 Rhino 适配器</button>' : ""}
           <button class="sm danger" data-act="delete">删除</button>
         </div>
       </div>`;
@@ -408,6 +409,10 @@
           return;
         } else if (act === "install-bl") {
           const r = await api("/config/hosts/blender/install-addon", { method: "POST" });
+          alert(r.message + (r.installed && r.installed.length ? "\n" + r.installed.join("\n") : ""));
+          return;
+        } else if (act === "install-rh") {
+          const r = await api("/config/hosts/rhino/install-adapter", { method: "POST" });
           alert(r.message + (r.installed && r.installed.length ? "\n" + r.installed.join("\n") : ""));
           return;
         }
