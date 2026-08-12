@@ -4,6 +4,9 @@ AgentBridge 是 **AI 智能体与软件之间的桥接平台**：让 Codex、Cla
 
 一句话：**我们不做软件功能，只做 Agent 与软件之间的桥。**
 
+> 产品总览（桌面应用 / 配置中心 / Agent 任务执行 / 交付闭环）见
+> [docs/product-overview-2026-08-12.md](docs/product-overview-2026-08-12.md)。
+
 ## 架构
 
 ```text
