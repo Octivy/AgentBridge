@@ -60,6 +60,10 @@ cd copilot_backend; python -m uvicorn app:app --host 127.0.0.1 --port 8000
 # 打开 http://127.0.0.1:8000/ui
 ```
 
+> 注意：正式用户入口是桌面客户端（`AgentBridge.Desktop.exe`），面板内嵌其中；
+> 浏览器访问 `:8000/ui` 仅用于开发与调试。完整产品说明见
+> [PRD](prd-agentbridge-desktop-2026-08-12.md) 与 [验收清单](acceptance-checklist-2026-08-12.md)。
+
 接入 Codex：配置中心“Agent 接入”页一键写入 `~/.codex/config.toml`（或直接调
 `POST /config/mcp/codex`），重启 Codex 后新会话即可原生使用
 `cadmcp_*` / `hostmcp_*` / `ab_*` 工具。
