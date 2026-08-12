@@ -16,5 +16,6 @@ jobs:
       - run: python -m pip install -e . pywin32
       - run: dotnet restore AgentBridge.sln
       - run: dotnet build AgentBridge.sln -c Release --no-restore
+      - run: .\AgentBridge.Tests\bin\Release\net48\AgentBridge.Tests.exe
       - run: .\install.ps1 -Configuration Release
       - run: python scripts/test_cadmcp_autocad_e2e.py
