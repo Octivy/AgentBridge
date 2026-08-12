@@ -275,18 +275,66 @@ module AgentBridgeHost
   ensure
     server.close rescue nil
   end
+
+  # Non-blocking timer-driven serving for the formal extension. SketchUp Ruby
+  # does not schedule background threads, so UI.start_timer runs on the main
+  # thread and each tick accepts at most one pending connection.
+  def self.start_timer(interval: 0.2)
+    if defined?(@timer_running) && @timer_running
+      return true
+    end
+    if !defined?(@server) || @server.nil?
+      @token = SecureRandom.hex(32)
+      @server = TCPServer.new("127.0.0.1", 0)
+      actual_port = @server.addr[1]
+      write_registration(port: actual_port, token: @token)
+      puts "AGENTBRIDGE_SKETCHUP_HOST_READY http://127.0.0.1:#{actual_port} #{@token}"
+    end
+    @timer_running = true
+    UI.start_timer(interval, true) { tick }
+    true
+  end
+
+  def self.tick
+    return true if !defined?(@server) || @server.nil?
+    begin
+      readable = IO.select([@server], nil, nil, 0)
+      if readable
+        client = @server.accept_nonblock(exception: false)
+        if client.is_a?(TCPSocket)
+          begin
+            handle_connection(client, @token)
+          rescue StandardError
+            nil
+          ensure
+            begin
+              client.close
+            rescue StandardError
+              nil
+            end
+          end
+        end
+      end
+    rescue StandardError
+      nil
+    end
+    true
+  end
 end
 
 # SketchUp's embedded Ruby does not schedule background threads, so the host
-# must run on the main thread. Start it from the Ruby console:
-#
-#   load 'H:/codex/AgentBridge/adapters/sketchup/cadcopilot_host.rb'
-#   AgentBridgeHost.start
-#
-# The console will stay busy while the host serves requests (this is expected).
+# serves on the main thread via a repeating UI timer (non-blocking accept).
+# Install as a formal extension (Extension Manager -> .rbz) and it starts
+# automatically; for manual testing you can also run AgentBridgeHost.start
+# from the Ruby console (blocks the console while serving).
 MARKER_DIR = File.join(ENV["LOCALAPPDATA"] || ENV["APPDATA"] || Dir.home, "AgentBridge")
 begin
   FileUtils.mkdir_p(MARKER_DIR)
   File.write(File.join(MARKER_DIR, "sketchup-plugin-loaded.txt"), Time.now.utc.iso8601)
 rescue StandardError
+end
+
+# Auto-start as a formal extension (timer-driven, non-blocking).
+if defined?(Sketchup) && defined?(UI)
+  AgentBridgeHost.start_timer
 end
