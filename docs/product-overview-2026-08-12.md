@@ -34,12 +34,12 @@ AgentBridge.Desktop（WPF + WebView2 桌面应用）
 | 组件 | 位置 | 状态 |
 | --- | --- | --- |
 | 桌面应用壳 | `desktop/AgentBridge.Desktop` | 已实现：WPF+WebView2、后端托管、托盘、自动拉起软件桥；实机启动验证通过 |
-| 配置中心 | `copilot_backend/host_config` + `http_api/ui.html` | 已实现：4 个软件默认配置、启停/测试/状态、UI 卡片与表单 |
+| 配置中心 | `copilot_backend/host_config` + `http_api/ui.html` | 已实现：4 个软件默认配置、启停/测试/状态、UI 卡片与表单、一键安装 SketchUp 扩展 / Blender 插件 |
 | MCP 接入管理 | `copilot_backend/mcp_registry` | 已实现：生成并写入 `~/.codex/config.toml` 与 `.mcp.json`（合并保留原配置） |
 | 控制面 MCP | `copilot_backend/control_mcp` | 已实现：15 个工具（软件管理、MCP 接入、适配器脚手架、任务交付），stdio 握手验证 |
 | 任务交付 | `copilot_backend/delivery` | 已实现：交付物 + 交接总结 + 查询，UI 面板可用 |
 | Agent 任务执行 | `copilot_backend/agent/host_task.py` | 已实现：AgentLoop + 宿主工具 + 写工具自动批准 + 自动写交接；`ab_run_task` / `POST /agent/task` |
-| Blender 适配器 | `adapters/blender` | 已实现并实机验证：场景摘要/几何体/移动/程序化别墅/渲染 |
+| Blender 适配器 | `adapters/blender` | 已实现并实机验证（含可见 GUI 窗口）：场景摘要/几何体/移动/程序化别墅/渲染；一键安装插件后打开 Blender 自动连接 |
 | Rhino 适配器 | `adapters/rhino` | 已实现：摘要/长方体（dry-run+回滚），契约测试通过，待 Rhino 实机验收 |
 | SketchUp 适配器 | `adapters/sketchup` | 已实现并实机验证通过（SketchUp 2025） |
 | AutoCAD | `cadmcp` | 13 个白名单工具，写操作事务/回滚 |
@@ -78,11 +78,12 @@ cd copilot_backend; python -m uvicorn app:app --host 127.0.0.1 --port 8000
 
 ## 验证摘要
 
-- 后端测试：202 个 pytest + 4 子测试全部通过。
+- 后端测试：215 个 pytest + 4 子测试全部通过。
 - 桌面应用：发布包实机启动，2 秒后端就绪，Blender 在线识别，干净退出。
 - Blender 实机：几何体创建/移动/回滚、别墅 dry-run、渲染出图全部通过。
 - 控制面 MCP：stdio 握手列出 16 工具并成功调用。
 - SketchUp 实机验收：SketchUp 2025 宿主注册/健康、场景摘要、创建长方体（dry-run→应用→回滚）全部通过。
+- 可见 Blender 窗口实机：客户端一键安装插件 → 打开 Blender 自动注册 → 在界面中直接生成别墅模型（79 对象）。
 - Agent 任务实机验证：DeepSeek 自主调用 Blender（创建球体 -> 渲染 PNG -> 场景确认 -> 中文总结），
   写工具 dry-run 自动批准，完成后回滚清理；/agent/task 与 ab_run_task 均可触发。
 - Codex 接入：`~/.codex/config.toml` 已注册 agentbridge/cadmcp/hostmcp，原配置完整保留。

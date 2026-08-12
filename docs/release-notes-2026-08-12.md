@@ -13,10 +13,12 @@
 - 任务交付：交付物（文件/截图/报告/模型）+ 交接总结，UI 与 API 均可查询。
 - 适配器：Blender（6 工具，实机验证）、SketchUp（2 工具，SketchUp 2025 实机验证通过）、
   Rhino（Python，契约测试通过，待 Rhino 重装后实机）、AutoCAD cadmcp（13 工具）。
+- 一键安装：客户端一键装 SketchUp 扩展 / Blender 插件，打开软件即自动连接
+  （Blender 已在可见 GUI 窗口实测生成别墅模型）。
 
 ## 质量
 
-- pytest 209 通过 + 4 子测试；ruff 全绿；桌面端 Release 构建通过；便携包可产出。
+- pytest 215 通过 + 4 子测试；ruff 全绿；桌面端 Release 构建通过；便携包可产出。
 
 ## 验收与发布
 

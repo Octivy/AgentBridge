@@ -48,6 +48,7 @@ AgentBridge 是一个**产品级桌面应用**，充当 AI Agent（Codex / Claud
 - 软件（Host 适配器）卡片：名称、类型、在线/离线/已注册/未启用状态、版本、端点；
 - 新增/编辑/删除软件桥；启动/停止其 MCP 进程；测试连接；
 - 一键安装适配器：SketchUp 扩展自动探测版本并装入 Extensions 目录（重启生效）；
+  Blender 插件自动装入 addons 目录并写自动启动脚本（打开 Blender 即连接）；
 - 配置持久化：`%LOCALAPPDATA%\AgentBridge\host_configs.json`。
 
 ### FR3 连接监控
@@ -85,7 +86,7 @@ AgentBridge 是一个**产品级桌面应用**，充当 AI Agent（Codex / Claud
 
 ### FR8 多软件适配器
 
-- Blender：6 工具（摘要/几何体/移动/程序化别墅/渲染），实机验证通过；
+- Blender：6 工具（摘要/几何体/移动/程序化别墅/渲染），GUI 可见窗口实机验证通过（一键安装 + 自动连接）；
 - SketchUp：2 工具（摘要/创建长方体），正式扩展 + 一键安装，实机验证通过；
 - Rhino：Python 适配器（摘要/长方体），契约测试通过，待 Rhino 重装后实机；
 - AutoCAD：cadmcp 13 个白名单工具，写操作事务/回滚。
@@ -96,7 +97,7 @@ AgentBridge 是一个**产品级桌面应用**，充当 AI Agent（Codex / Claud
    `app\AgentBridge.Desktop.exe`（或 `install-desktop.ps1` 装到开始菜单，可 `-AutoStart`）。
 2. 连接软件：
    - SketchUp：软件配置 → SketchUp 卡片 → “一键安装 SketchUp 扩展” → 重启 SketchUp；
-   - Blender：在 Blender 中运行后台宿主（或按适配器 README 配置），重启后自动注册；
+   - Blender：软件配置 → Blender 卡片 → “一键安装 Blender 插件” → 打开 Blender 即自动连接；
    - Rhino / AutoCAD：同款卡片配置/一键安装（Rhino 待重装后补齐一键安装）。
 3. 查看连接：连接监控页确认宿主在线、工具就绪。
 4. 接入 Codex：Agent 接入页 → “写入 Codex 配置（~/.codex/config.toml）” → 重启 Codex →
