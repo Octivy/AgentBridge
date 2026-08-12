@@ -274,6 +274,23 @@ end
 
 # Auto-start the host when this file is loaded inside SketchUp (copy into
 # %APPDATA%\SketchUp\SketchUp <ver>\SketchUp\Plugins\ and restart SketchUp).
+# The host runs in a background thread so the SketchUp UI never blocks.
+MARKER_DIR = File.join(ENV["LOCALAPPDATA"] || ENV["APPDATA"] || Dir.home, "AgentBridge")
+begin
+  FileUtils.mkdir_p(MARKER_DIR)
+  File.write(File.join(MARKER_DIR, "sketchup-plugin-loaded.txt"), Time.now.utc.iso8601)
+rescue StandardError
+end
+
 if defined?(Sketchup) && defined?(UI)
-  UI.start_timer(0, false) { AgentBridgeHost.start }
+  Thread.new do
+    begin
+      AgentBridgeHost.start
+    rescue StandardError => exc
+      begin
+        File.write(File.join(MARKER_DIR, "sketchup-host-error.txt"), exc.full_message)
+      rescue StandardError
+      end
+    end
+  end
 end

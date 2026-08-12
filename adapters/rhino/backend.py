@@ -4,6 +4,8 @@
 Rhino (unit tests). All functions assume they run inside Rhino's Python.
 """
 
+# -*- coding: utf-8 -*-
+
 from typing import Any, Dict
 
 try:
