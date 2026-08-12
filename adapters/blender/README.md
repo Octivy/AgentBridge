@@ -14,6 +14,16 @@
 
 Blender 操作在 `bpy.app.timer` 驱动的队列中于主线程执行，HTTP 服务线程只负责接收请求，避免 bpy 线程安全问题。
 
+## 实机验证
+
+仓库内提供一键验证（需要本机安装 Blender）：
+
+```powershell
+python .\scripts\verify_blender_host.py
+```
+
+脚本以 `--background` 启动 Blender，通过注册发现宿主，验证 manifest/health/snapshot、写操作 dry-run、授权提交和回滚，全部通过后输出 `BLENDER HOST VERIFICATION PASSED`。
+
 ## 与现有插件的区别
 
 Blender 适配器不含任何聊天 UI 和模型逻辑，只实现 Host Adapter Contract v1。全部智能来自外部 Agent（Codex/Claude 等），经 AgentBridge 客户端接入。
