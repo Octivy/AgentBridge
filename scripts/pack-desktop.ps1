@@ -30,12 +30,13 @@ Get-ChildItem -Path $backend -Recurse -File -Include "*.pyc", "*.pyo" -ErrorActi
 
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "setup-backend.ps1") -Destination $dist -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "install-desktop.ps1") -Destination $dist -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot "start-agentbridge.ps1") -Destination $dist -Force
 
 $readme = @(
     "AgentBridge portable bundle",
     "===========================",
     "1) Run setup-backend.ps1 once to prepare the backend Python environment.",
-    "2) Run app\AgentBridge.Desktop.exe, or run install-desktop.ps1 to install locally.",
+    "2) Double-click start-agentbridge.ps1 (auto-setup + launch), or install-desktop.ps1 to install locally.",
     "3) Use -AutoStart on install-desktop.ps1 to launch at sign-in."
 )
 Set-Content -LiteralPath (Join-Path $dist "README.txt") -Value $readme -Encoding UTF8
