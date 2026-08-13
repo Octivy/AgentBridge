@@ -17,13 +17,24 @@ from typing import Dict, List
 PACKAGE_NAME = "agentbridge_rhino"
 STARTUP_NAME = "AgentBridgeHost_startup.py"
 
-STARTUP_SCRIPT = '''# AgentBridge Rhino host startup (diagnostic logging included).
+STARTUP_SCRIPT = '''#! python 3
+# AgentBridge Rhino host startup (diagnostic logging included).
 import os
+import json
 import sys
 import traceback
+import urllib.request
 
 LOG_PATH = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "rhino-startup.log")
-_HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Rhino stages scripts under ~/.rhinocode/stage before running them, so
+# __file__ does NOT point at the real scripts folder. Resolve the package from
+# the canonical Rhino scripts directory instead.
+_SCRIPTS_DIR = os.path.join(
+    os.environ.get("APPDATA", ""),
+    "McNeel", "Rhinoceros", "8.0", "scripts",
+)
+_REGISTRY_DIR = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "hosts")
 
 
 def _log(message):
@@ -37,12 +48,44 @@ def _log(message):
 
 _log("AgentBridge Rhino startup running")
 try:
-    if _HERE not in sys.path:
-        sys.path.insert(0, _HERE)
+    if _SCRIPTS_DIR not in sys.path:
+        sys.path.insert(0, _SCRIPTS_DIR)
+
+    # Idempotent startup: if a live host is already registered for this Rhino
+    # process, do not start a second one (a second host freezes Rhino).
+    _alive = False
+    _pid = None
+    try:
+        import System.Diagnostics as _diag
+        _pid = str(_diag.Process.GetCurrentProcess().Id)
+    except Exception:
+        _pid = None
+    if os.path.isdir(_REGISTRY_DIR):
+        for _name in os.listdir(_REGISTRY_DIR):
+            if not _name.startswith("rhino-main-"):
+                continue
+            try:
+                with open(os.path.join(_REGISTRY_DIR, _name), encoding="utf-8") as _fh:
+                    _reg = json.load(_fh)
+                if not _pid or str(_reg.get("pid")) != _pid:
+                    continue
+                _req = urllib.request.Request(
+                    _reg["endpoint"].rstrip("/") + "/health",
+                    headers={"x-cadcopilot-token": _reg.get("token", "")},
+                )
+                with urllib.request.urlopen(_req, timeout=1) as _resp:
+                    if _resp.status == 200:
+                        _alive = True
+                        _log("host already running; skipping duplicate startup")
+                        break
+            except Exception:
+                continue
+
     import agentbridge_rhino.background_host as host
 
-    host.main()
-    _log("host started")
+    if not _alive:
+        host.main()
+        _log("host started")
 except Exception:
     _log("ERROR: " + traceback.format_exc())
 '''
