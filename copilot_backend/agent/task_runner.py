@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from agent.host_task import (
     AgentTaskRequest,
+    CombinedToolExecutor,
     TaskContext,
     build_task_context,
     confirm_policy,
@@ -267,9 +268,13 @@ class AgentTaskRunner:
         record.history = list(result.history)
 
         if result.stopped_reason == "needs_confirmation":
+            # Enrich first, then flip status: the dry-run await must not expose
+            # an intermediate state (status set, pending_write still None).
+            pending = dict(result.pending_write or {})
+            pending = await self._enrich_pending_preview(context, pending)
+            record.pending_write = pending
             record.status = "needs_confirmation"
             record.stopped_reason = "needs_confirmation"
-            record.pending_write = result.pending_write
         else:
             record.status = "completed"
             record.stopped_reason = result.stopped_reason
@@ -277,6 +282,65 @@ class AgentTaskRunner:
             record.pending_write = None
             record_task_handoff(self._delivery, record.task_id, record.user_goal, record.executed_tools)
         self._save(record)
+
+    async def _enrich_pending_preview(self, context: TaskContext, pending: Dict[str, Any]) -> Dict[str, Any]:
+        """Attach a dry-run preview to a blocked write so the panel can show
+        what the operation will change before the user confirms.
+
+        Write tools run through dry-run (host: no permission token -> preview;
+        CAD: default dry_run=True) without committing, so this is side-effect
+        free. Failures degrade silently — the card falls back to raw args.
+        """
+
+        name = str(pending.get("name") or "")
+        tool = next((item for item in context.tools if item.tool_name == name), None)
+        if tool is None:
+            return pending
+        risk = (tool.risk_level or "").strip().lower()
+        if risk in {"read_only", "preview_only"} or not tool.dry_run_supported:
+            return pending
+
+        # Never reuse the loop's executor here: a resume context runs with
+        # full approval and would auto-commit. Preview must stay a dry-run.
+        preview_executor = CombinedToolExecutor(
+            host_executor=context.host_executor,
+            cad_executor=context.cad_executor,
+            host_tools=context.host_tools,
+            cad_tools=context.cad_tools,
+            approval="annotate",
+            trace_id="",
+        )
+        try:
+            result_text = await preview_executor(name, dict(pending.get("arguments") or {}))
+        except Exception:  # noqa: BLE001 - preview is best-effort
+            return pending
+        try:
+            payload = json.loads(result_text)
+        except (ValueError, TypeError):
+            return pending
+        if not isinstance(payload, dict):
+            return pending
+
+        preview = _extract_dry_run_preview(payload)
+        if preview is not None:
+            pending["preview"] = preview
+        return pending
+
+
+def _extract_dry_run_preview(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Pick the human-relevant bits out of a dry-run result payload."""
+
+    data = payload.get("data") or payload.get("result") or payload.get("preview")
+    summary = str(payload.get("summary") or "").strip()
+    if not summary and not isinstance(data, (dict, list)):
+        # e.g. permission_required errors or empty previews carry nothing to show
+        return None
+    return {
+        "dry_run": bool(payload.get("dry_run", False)),
+        "requires_permission": bool(payload.get("requires_permission", False)),
+        "summary": summary[:400],
+        "data": data if isinstance(data, (dict, list)) else None,
+    }
 
 
 agent_task_runner = AgentTaskRunner()

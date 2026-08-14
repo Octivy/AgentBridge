@@ -21,11 +21,11 @@ AgentBridge 客户端（托盘常驻 / Web 面板 /ui）
 
 核心组件：
 
-- `client/`：独立托盘客户端，自启 backend，宿主状态与对话面板。
+- `desktop/`：产品级桌面客户端（WPF + WebView2），自启 backend、侧边导航、托盘与状态栏。
 - `copilot_backend/host_runtime`：宿主注册发现、manifest 校验、统一调用客户端。
 - `copilot_backend/host_mcp`：多宿主 MCP 工具面（`<host>_<tool>`），写工具 dry-run → 一次性票据 → 提交 → 回滚。
 - `copilot_backend/agent`：原生工具调用 Agent Loop（OpenAI / Claude / DeepSeek / Ollama 协议适配 + 故障切换）。
-- `adapters/`：各软件宿主适配器（Blender 已实现，SketchUp 骨架，Rhino 规划）。
+- `adapters/`：各软件宿主适配器（Blender / SketchUp / Rhino）。
 - `cadmcp/`：AutoCAD 连接器（首个宿主），13 个白名单工具。
 
 设计基线见 [Host Adapter Contract v1](docs/host-adapter-contract-v1-2026-08-12.md) 与 [重新设计 v1](docs/redesign-v1-2026-08-11.md)。
@@ -76,7 +76,7 @@ MCP 只暴露 13 个产品工具：
 
 ```text
 AgentBridge/
-├─ client/                  # 独立托盘客户端（net8.0-windows）
+├─ desktop/                  # 产品级桌面客户端（WPF + WebView2，net8.0-windows）
 ├─ adapters/                # 各软件宿主适配器（Blender/SketchUp/Rhino）
 ├─ Core/                    # AutoCAD 插件：配置、本地 MCP 桥、主线程调度
 ├─ Engine/                  # AutoCAD 插件：快照提取、事务和回滚

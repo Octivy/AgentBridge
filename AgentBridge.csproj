@@ -30,7 +30,6 @@
 
   <ItemGroup>
     <Compile Remove="AgentBridge.Tests\**\*.cs" />
-    <Compile Remove="client\**\*.cs" />
     <!-- desktop/ is a separate .NET 8 project; keep the SDK globs out of the net48 plugin -->
     <Compile Remove="desktop\**" />
     <Page Remove="desktop\**" />

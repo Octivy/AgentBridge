@@ -184,10 +184,14 @@ async def test_annotate_stops_at_write_and_confirm_completes(tmp_path):
     blocked = await wait_status(runner, view["task_id"], {"needs_confirmation"})
     assert blocked["pending_write"]["name"] == "blender_create_cube"
     assert blocked["pending_write"]["arguments"] == {"name": "T1"}
-    # the read happened, the write did not
+    # the read happened, the write did not commit
     assert [item["name"] for item in blocked["executed_tools"]] == ["blender_scene_summary"]
-    write_calls = [name for name, _ in executor.calls if name == "blender_create_cube"]
-    assert write_calls == []
+    commits = [
+        args
+        for name, args in executor.calls
+        if name == "blender_create_cube" and args.get("dry_run") is False and args.get("permission_token")
+    ]
+    assert commits == []
 
     await runner.confirm_task(blocked["task_id"], approve=True)
     final = await wait_status(runner, blocked["task_id"], {"completed"})
@@ -199,6 +203,35 @@ async def test_annotate_stops_at_write_and_confirm_completes(tmp_path):
 
     handoff = runner._delivery.get(blocked["task_id"])
     assert handoff is not None
+
+
+@pytest.mark.asyncio
+async def test_pending_write_carries_dry_run_preview(tmp_path):
+    executor = FakeHostExecutor()
+    provider = FakeProvider(
+        [
+            {
+                "content": "准备写入",
+                "tool_calls": [{"id": "c1", "name": "blender_create_cube", "arguments": {"name": "T1"}}],
+            },
+            {"content": "完成", "tool_calls": []},
+        ]
+    )
+    runner = make_runner(tmp_path, executor, provider)
+
+    view = await runner.start_task(AgentTaskRequest(message="创建 T1", approval="annotate"))
+    blocked = await wait_status(runner, view["task_id"], {"needs_confirmation"})
+    preview = blocked["pending_write"].get("preview")
+    assert preview is not None
+    assert preview["data"] == {"preview": {"object_name": "T1"}}
+    assert preview["requires_permission"] is True
+    # a dry-run was performed (no commit): one preview call without a token
+    dry_calls = [
+        args
+        for name, args in executor.calls
+        if name == "blender_create_cube" and not args.get("permission_token")
+    ]
+    assert len(dry_calls) == 1
 
 
 @pytest.mark.asyncio
@@ -259,7 +292,12 @@ async def test_reject_feeds_refusal_back_to_model(tmp_path):
     await runner.confirm_task(blocked["task_id"], approve=False)
     final = await wait_status(runner, blocked["task_id"], {"completed"})
     assert final["final_text"] == "好的，不再写入"
-    assert [name for name, _ in executor.calls] == []
+    commits = [
+        args
+        for name, args in executor.calls
+        if name == "blender_create_cube" and args.get("dry_run") is False and args.get("permission_token")
+    ]
+    assert commits == []
 
     last_history = provider.seen[-1]
     refusal = [item for item in last_history if str(item.get("content") or "").find("拒绝") >= 0]

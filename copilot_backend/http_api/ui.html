@@ -554,11 +554,17 @@
       let confirmCard = "";
       if (task.status === "needs_confirmation" && task.pending_write) {
         const pw = task.pending_write;
+        const preview = pw.preview || null;
+        const previewBlock = preview
+          ? `<div class="card-meta" style="margin-top:8px"><b>dry-run 预览</b>${preview.summary ? `：${esc(preview.summary)}` : ""}</div>` +
+            (preview.data ? `<pre class="code" style="margin-top:6px">${esc(JSON.stringify(preview.data, null, 2))}</pre>` : "")
+          : "";
         confirmCard = `
           <div class="confirm-card">
             <h3>智能体请求执行写操作</h3>
             <div class="card-meta">工具：<b>${esc(pw.name || "")}</b></div>
             <pre class="code">${esc(JSON.stringify(pw.arguments || {}, null, 2))}</pre>
+            ${previewBlock}
             <div class="row">
               <button data-decision="true">批准并继续</button>
               <button class="danger" data-decision="false">拒绝</button>
