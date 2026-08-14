@@ -117,16 +117,14 @@ Python：`C:\Users\chang_k\AppData\Local\Programs\Python\Python311\python.exe`�
 
 ## 5. 已知问题与待办（交给后续接手）
 
-1. **两个窗未挂接**（图纸数据问题）：
+1. **两个窗未挂接**（图纸数据问题）——**已关闭（2026-08-14 用户决策）**：取消人工核对，连接链路验证通过后改用新图纸测试。
    - `(40656530.8, 3303285.6)` w=700：窗洞两侧墙线只有 100mm 短段（100mm 厚隔墙片段），
      配对后中心线存在但挂接依赖容差，需人工确认是否真实窗。
    - `(40682180.8, 3292735.6)` w=1500：该位置图纸无墙线（最近墙 1.35m 外），疑似漏画。
-2. **AutoCAD 桥接未做**（需兼容 2014–2024；本机实际为 2016）。
-3. **客户端开发**（用户已安排其他智能体接手，见差距分析文档）。
-4. **交付记录**：`%LOCALAPPDATA%\AgentBridge\deliveries.json` 尚未登记本轮 dxf-rhino 交付。
-5. **Git 未提交**：本轮改动（adapters/rhino/backend.py、copilot_backend/scripts/、
-   tests、project_corrections.json、docs）尚未 commit；`_debug_*.py`、`_plan_view.png`
-   为临时文件，提交前应清理。
+2. **AutoCAD 桥接未做**（需兼容 2014–2024；本机实际为 2016）——**已纳入一键连接编排**，实机验证步骤见 `host-verification-matrix-2026-08-14.md` §5。
+3. **客户端开发**（用户已安排其他智能体接手，见差距分析文档）——**已完成**：P0/P1 闭环 + 连接自愈 + 双壳收口，见 `p1-closedloop-2026-08-14.md`。
+4. **交付记录**：已登记 `dxf-rhino-plan-1f`（2026-08-13）。
+5. **Git 未提交**：已提交（`4236982` 及之后）；`_debug_*.py`、`_plan_view.png` 已加 `.gitignore`，不随版本库。
 
 ## 6. 给接手者的三条建议
 
