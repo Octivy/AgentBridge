@@ -149,8 +149,8 @@ class ConnectFlowTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         wait_step = next(step for step in result["steps"] if step["name"] == "wait_registration")
         self.assertFalse(wait_step["ok"])
-        self.assertIn("自动连接", wait_step["detail"])
-        self.assertIn("测试连接", wait_step["detail"])
+        self.assertIn("自动完成注册", wait_step["detail"])
+        self.assertIn("打开或重启", wait_step["detail"])
 
     def test_default_bridge_launch_points_to_repo_script(self) -> None:
         launch = default_bridge_launch("blender")

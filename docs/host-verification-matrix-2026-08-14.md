@@ -9,7 +9,7 @@
 
 - 桌面端（AgentBridge.Desktop）已构建并运行，backend 在线。
 - 目标软件已安装：AutoCAD 2016（本机实际版本）/ Blender / SketchUp 2025 / Rhino 8。
-- 模型已在面板"设置"页配置并通过"真实连通测试"。
+- 模型由 Agent 侧（Codex / DeepSeek Harness 等）自行配置；AgentBridge 只负责桥接与连接健康。
 - 每次验证记录：宿主/版本、命令、输入、期望、实际、日志路径。
 
 ## 1. 统一 8 步矩阵

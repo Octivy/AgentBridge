@@ -295,11 +295,24 @@ def rhino_adapter_status_route() -> dict:
 
 
 def _adapter_status_map() -> dict:
+    def _safe(fn):
+        try:
+            return fn()
+        except Exception:  # noqa: BLE001 - one broken probe must not break scanning
+            return {}
+
+    blender = _safe(blender_addon_status)
+    sketchup = _safe(sketchup_extension_status)
+    rhino = _safe(rhino_adapter_status)
+    autocad = _safe(autocad_plugin_status)
     return {
-        "blender": {"installed": any(a.get("installed") for a in blender_addon_status().get("addons", []))},
-        "sketchup": {"installed": bool(sketchup_extension_status().get("installed"))},
-        "rhino": {"installed": bool(rhino_adapter_status().get("installed"))},
-        "autocad": autocad_plugin_status(),
+        "blender": {"installed": any(a.get("installed") for a in blender.get("addons", []))},
+        # sketchup_extension_status returns {extensions: [{installed, ...}]}
+        "sketchup": {
+            "installed": any(entry.get("installed") for entry in sketchup.get("extensions") or [])
+        },
+        "rhino": {"installed": bool(rhino.get("installed"))},
+        "autocad": autocad,
     }
 
 
@@ -307,7 +320,10 @@ def _adapter_status_map() -> dict:
 def detect_software() -> dict:
     """扫描本机已安装的受支持软件（Blender/SketchUp/Rhino/AutoCAD）。"""
 
-    return {"software": detect_installed_software(adapter_status=_adapter_status_map())}
+    try:
+        return {"software": detect_installed_software(adapter_status=_adapter_status_map())}
+    except Exception as exc:  # noqa: BLE001 - scanning must never 500 the panel
+        return {"software": [], "error": f"检测失败：{exc}"}
 
 
 @router.post("/config/hosts/{host_id}/connect")

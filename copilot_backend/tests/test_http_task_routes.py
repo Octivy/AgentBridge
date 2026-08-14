@@ -99,15 +99,20 @@ def test_delivery_action_routes_404_for_unknown_task(client):
     assert rollback.status_code == 404
 
 
-def test_ui_contains_closed_loop_elements(client):
+def test_ui_contains_bridge_only_elements(client):
     page = client.get("/ui").text
-    # 任务时间线挂载点（总览首屏 + 任务交付页）
-    assert 'id="hero-progress"' in page
-    assert 'id="at-progress"' in page
-    # 写确认与交付动作的 JS 能力
-    assert "/confirm" in page
-    assert "rollback-tokens" in page
-    assert "data-dact" in page
-    # 向导与模型配置仍在
+    # 桥接定位：连接 / 监控 / 自愈 / Agent 接入
     assert 'id="wizard"' in page
-    assert 'id="settings"' in page
+    assert 'id="config-list"' in page
+    assert 'id="host-list"' in page
+    assert 'id="event-list"' in page
+    assert 'id="mcp-servers"' in page
+    # 后端接口仍在，但面板不暴露交付动作
+    assert "rollback-tokens" not in page
+    # 面板不再暴露：给智能体下命令 / 对话 / 任务交付 / 设置(模型配置)
+    assert "task-hero" not in page
+    assert 'id="messages"' not in page
+    assert 'id="tasks"' not in page
+    assert 'id="settings"' not in page
+    assert 'id="hero-progress"' not in page
+    assert 'id="at-progress"' not in page

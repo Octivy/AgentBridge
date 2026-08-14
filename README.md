@@ -32,20 +32,22 @@ AgentBridge 客户端（托盘常驻 / Web 面板 /ui）
 
 ## 当前能力
 
-- 快速连接：面板一键"连接"完成 检测本机软件 → 安装插件/适配器 → 拉起桥接 → 等待注册 → 健康检查 → 持久化（enabled + auto_start）；一次配置成功，多次可用，之后每次只需检查连接状态。
+**定位：只做 Agent 与软件之间的桥。** 模型由 Agent 侧（Codex / DeepSeek Harness 等）自行配置，
+AgentBridge 负责连接、注册与连接健康，不内置模型配置、任务执行与交付管理。
+
+- 快速连接：面板一键"连接"完成 检测本机软件 → 安装插件/适配器 → 拉起桥接 → 等待注册 → 健康检查 → 持久化（enabled + auto_start）；一次配置成功，多次可用，之后每次只需检查连接状态。连接过程逐步显示 ✓/✗ 与失败修复建议。
 - 连接自愈可见化：`auto_start` 桥进程崩溃自动重启（带重启预算防风暴）、端口冲突归因、连接生命周期事件流，监控页实时呈现（`/config/connection/*`）。
 - 本机软件自动探测：扫描注册表与常见安装位置，识别 Blender / SketchUp / Rhino / AutoCAD 及插件安装状态（`GET /config/detect`）。
-- 模型配置进面板：设置页选择服务商、填 Key、静态校验 + 真实连通测试，保存即生效，无需编辑 .env（`/config/model/*`）。
-- 首次运行向导：总览页四步引导（连接软件 → 配模型 → 接入 Agent → 跑第一个任务），完成后自动隐藏。
-- 多模型：OpenAI、Anthropic/Claude、DeepSeek、MiniMax、OpenAI Compatible、Ollama、企业内网接口；Provider 故障切换（在线 → 本地兜底）。
+- 首次运行向导：总览页两步引导（连接一个软件 → 接入 Agent），完成后自动隐藏。
+- 连接检查：面板与 API 提供宿主注册状态、健康检查、五层诊断（backend / 模型网关 / CADMCP / 本地桥 / AutoCAD）。
+- Agent 接入：预览并合并写入 Codex（`~/.codex/config.toml`）与 Claude（`.mcp.json`）MCP 配置，可随时回读已注册状态。
 - 多宿主：AutoCAD（13 工具）、Blender（6 工具实机验证）、SketchUp（实机验证）、Rhino（实机验证）；Host Adapter 契约标准化，任意软件可接入。
-- Skill 增强：Agent 任务自动注入与当前可用工具匹配的已启用 Skill 操作规程（操作要点 + 起手动作），让智能体按已验收的方式操作软件。
-- Agent 任务体验：一句话命令异步执行，面板实时渲染步骤时间线（思考 / 工具 ✓✗ / 被拦截的写）；annotate 模式下写操作停下弹确认卡，批准（dry-run → 票据 → 提交）继续执行、拒绝交回模型，其后每次写操作逐一确认。
-- 交付物可消费：交付卡片直接打开 / 打开目录 / 图片预览 / 台账令牌回滚（单条或全部），交付闭环到"拿到手"。
 - 安全：回环绑定 + token 认证、写操作 dry-run → 一次性权限票据 → 事务/回滚、破坏性写强制本地确认。
-- 对话与任务：标准模式问答、Planner、待审核 Skill 草稿、公司规范知识问答（来源引用与拒答）。
+- 真安装器（Inno Setup）：自包含 .NET 发布 + 内嵌 Python 运行时，目标机器无需预装 Python/.NET；后端端口可配置（`AGENTBRIDGE_PORT` / `client.json`）。
+- 桥接 MCP：`hostmcp`（多宿主）、`cadmcp`（AutoCAD）、`agentbridge`（控制面）三个 MCP Server 供 Agent 直接调用；后续可为无 MCP 的传统软件补充专用 MCP 服务。
 
-P1 闭环（写确认 / 过程可视化 / 交付动作）实现细节与验证记录见 [docs/p1-closedloop-2026-08-14.md](docs/p1-closedloop-2026-08-14.md)。
+面板功能与验收记录见 [docs/p1-closedloop-2026-08-14.md](docs/p1-closedloop-2026-08-14.md) 与
+[docs/host-verification-matrix-2026-08-14.md](docs/host-verification-matrix-2026-08-14.md)。
 
 ## AutoCAD 连接器（首个宿主）
 

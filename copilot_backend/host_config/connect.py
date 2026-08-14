@@ -118,6 +118,12 @@ class HostConnector:
         cleanup_stale_registrations(self._registry_dir, host_kind=config.host_kind)
 
         steps: List[Dict[str, object]] = []
+        # "连接" is an explicit user action: a previously disabled entry (old
+        # seed data) is enabled automatically instead of failing mid-chain.
+        if not config.enabled:
+            config = self._service.update_config(config.host_id, HostConfigUpdate(enabled=True))
+            steps.append(_step("enable", True, "该软件此前处于停用状态，已自动启用"))
+
         detected = self._step_detect(config, steps)
         if detected is None:
             return self._result(config.host_id, steps, connected=False, persisted=False)
@@ -251,8 +257,8 @@ class HostConnector:
             except Exception:  # noqa: BLE001
                 launched = False
         hint = (
-            "适配器已就绪。请打开/重启目标软件，插件会自动完成注册连接（一次配置，之后每次启动软件自动连接）；"
-            "完成后回到面板点击“测试连接”。"
+            f"插件/适配器已就绪。请现在打开或重启 {config.name}：适配器会自动完成注册，"
+            "面板随即自动完成健康检查。若软件已打开，请确认适配器/插件已在软件内启用。"
         )
         if launched:
             hint = "已尝试自动拉起软件。" + hint
