@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+import logging
 from typing import Any, Dict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from http_api.routes import router
 from product.model_config_service import get_runtime_model_provider_config
@@ -19,6 +21,19 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="AgentBridge Backend", version=CADCOPILOT_RELEASE_VERSION, lifespan=lifespan)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Surface the real error in the panel instead of a bare 500 (loopback app)."""
+
+    logging.getLogger("uvicorn.error").error(
+        "Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {type(exc).__name__}: {exc}"},
+    )
 
 
 @app.get("/health")
