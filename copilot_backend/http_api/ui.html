@@ -268,16 +268,16 @@
         ]);
         const steps = [
           {
-            title: "1. 连接一个软件",
-            done: configs.some((c) => c.health_ok),
-            hint: "打开软件后点一键连接（检测 → 装插件 → 拉桥 → 验证）",
-            action: "software",
-          },
-          {
-            title: "2. 接入 Agent",
+            title: "1. 接入 Agent",
             done: (mcp.codex_servers || []).length > 0,
             hint: "把 MCP 服务器写进 Agent 配置（合并写入，可预览）",
             action: "agents",
+          },
+          {
+            title: "2. 连接一个软件",
+            done: configs.some((c) => c.health_ok),
+            hint: "先打开软件 → 一键连接装插件 → 测试连接看状态",
+            action: "software",
           },
         ];
         if (steps.every((s) => s.done)) {

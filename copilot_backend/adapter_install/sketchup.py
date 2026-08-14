@@ -85,12 +85,40 @@ def install_sketchup_extension(
         temp.write_bytes(rbz)
         os.replace(temp, target)
         installed.append(str(target))
+    removed = _remove_stale_loose_copies(root)
+    message = "已安装到 SketchUp，请重启 SketchUp 生效"
+    if removed:
+        message += f"；同时清理了 {len(removed)} 个旧版裸拷贝（旧文件会导致宿主崩溃）"
     return {
         "ok": True,
         "installed": installed,
+        "removed_stale": removed,
         "sketchup_versions": versions,
-        "message": "已安装到 SketchUp，请重启 SketchUp 生效",
+        "message": message,
     }
+
+
+def _remove_stale_loose_copies(root: Path | None = None) -> List[str]:
+    """Remove old loose .rb copies in SketchUp's Plugins dir.
+
+    Older installs copied the host straight into Plugins/; SketchUp loads that
+    copy *and* the .rbz bundle, so the stale copy crashes first and breaks
+    registration. The .rbz in Extensions/ is the single source of truth.
+    """
+
+    base = root or sketchup_appdata_root()
+    removed: List[str] = []
+    for version in detect_sketchup_versions(base):
+        plugins_dir = base / f"SketchUp {version}" / "SketchUp" / "Plugins"
+        for name in ("cadcopilot_host.rb", "cadcopilot_extension.rb"):
+            path = plugins_dir / name
+            try:
+                if path.is_file():
+                    path.unlink()
+                    removed.append(str(path))
+            except OSError:
+                continue
+    return removed
 
 
 def sketchup_extension_status(root: Path | None = None) -> Dict[str, object]:

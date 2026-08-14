@@ -93,7 +93,7 @@ class HostConnector:
         *,
         registry_dir: Optional[Path] = None,
         installers: Optional[Dict[str, ConnectorInstaller]] = None,
-        wait_seconds: float = 25.0,
+        wait_seconds: float = 8.0,
         poll_interval: float = 0.8,
         sleep: Callable[[float], None] = time.sleep,
         software_launcher: Optional[Callable[[str], bool]] = None,
@@ -257,8 +257,8 @@ class HostConnector:
             except Exception:  # noqa: BLE001
                 launched = False
         hint = (
-            f"插件/适配器已就绪。请现在打开或重启 {config.name}：适配器会自动完成注册，"
-            "面板随即自动完成健康检查。若软件已打开，请确认适配器/插件已在软件内启用。"
+            f"① 现在打开或重启 {config.name}（插件/适配器会自动完成注册）；"
+            "② 回到面板点“重新连接”或“测试连接”，即可看到连接状态。"
         )
         if launched:
             hint = "已尝试自动拉起软件。" + hint

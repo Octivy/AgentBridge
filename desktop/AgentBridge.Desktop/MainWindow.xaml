@@ -40,15 +40,9 @@
                                 Click="BtnOpenExternal_Click" Margin="0,8,0,0" />
                     </StackPanel>
 
+                    <!-- 导航由面板页内标签提供（浏览器/客户端同构），侧边栏不再重复 -->
                     <StackPanel>
-                        <RadioButton x:Name="NavOverview" Content="总览" GroupName="nav" IsChecked="True"
-                                     Style="{StaticResource NavRadioStyle}" Checked="Nav_Checked" Tag="overview" />
-                        <RadioButton x:Name="NavSoftware" Content="软件配置" GroupName="nav"
-                                     Style="{StaticResource NavRadioStyle}" Checked="Nav_Checked" Tag="software" />
-                        <RadioButton x:Name="NavMonitor" Content="连接监控" GroupName="nav"
-                                     Style="{StaticResource NavRadioStyle}" Checked="Nav_Checked" Tag="monitor" />
-                        <RadioButton x:Name="NavAgents" Content="Agent 接入" GroupName="nav"
-                                     Style="{StaticResource NavRadioStyle}" Checked="Nav_Checked" Tag="agents" />
+                        <TextBlock Text="导航见面板页内标签" FontSize="11" Foreground="{StaticResource TextSecondary}" Margin="4,0,0,6" />
                     </StackPanel>
                 </DockPanel>
             </Border>

@@ -54,6 +54,8 @@ public partial class MainWindow : Window
             await Browser.EnsureCoreWebView2Async();
             Browser.CoreWebView2.Settings.AreDevToolsEnabled = true;
             Browser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = true;
+            // 面板用 alert/confirm 呈现操作结果（连接测试、安装插件等），必须开启
+            Browser.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
             NavigateTo("overview");
         }
         catch (Exception ex)
@@ -81,18 +83,6 @@ public partial class MainWindow : Window
                 _ => "后端已停止",
             };
         });
-    }
-
-    private void Nav_Checked(object sender, RoutedEventArgs e)
-    {
-        if (Browser is null || Browser.CoreWebView2 is null)
-        {
-            return;
-        }
-        if (sender is System.Windows.Controls.RadioButton { Tag: string section })
-        {
-            NavigateTo(section);
-        }
     }
 
     private void NavigateTo(string section)
