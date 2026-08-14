@@ -17,7 +17,10 @@ class TestClientUi:
         assert response.status_code == 200
         assert 'id="software"' in response.text
         assert 'data-section="software"' in response.text
-        assert "config-form" in response.text
+        # 左侧导航 + 受支持软件状态面板（无扫描按钮、无新增表单）
+        assert "sidebar" in response.text
+        assert 'id="soft-grid"' in response.text
+        assert "config-form" not in response.text
 
     def test_hosts_endpoint_shape(self):
         response = client.get("/hosts")

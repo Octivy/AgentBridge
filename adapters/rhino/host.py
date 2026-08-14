@@ -13,7 +13,7 @@ import queue
 import secrets
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Callable, Dict, List, Optional
 
 
@@ -119,7 +119,11 @@ class HostAdapter:
         self._snapshot_fn = snapshot_fn
         self._execute_fn = execute_fn
         self._rollback_fn = rollback_fn
-        self._httpd = ThreadingHTTPServer((host, port), _make_handler(self))
+        self._httpd = HTTPServer((host, port), _make_handler(self))
+        # Single-threaded server: Rhino's embedded CPython is thread-limited
+        # (ThreadingHTTPServer's per-request threads triggered R6016 "not
+        # enough space for thread data" after repeated startups). Requests are
+        # local, small and infrequent; a serial serve loop is plenty.
         self.port = int(self._httpd.server_address[1])
         self.endpoint = f"http://{host}:{self.port}"
         self._thread: Optional[threading.Thread] = None

@@ -18,7 +18,7 @@ from delivery import actions as delivery_actions
 from delivery.models import DeliverableCreate, DeliveryTaskView, HandoffUpdate
 from delivery.service import delivery_service
 from host_config.connect import HostConnector, cleanup_stale_registrations
-from host_config.detect import autocad_plugin_status, detect_installed_software
+from host_config.detect import autocad_plugin_status, detect_installed_software, detect_running_software
 from host_config.events import STALE_REGISTRATION_CLEANED, connection_event_log
 from host_config.heal import bridge_supervisor
 from host_config.models import (
@@ -324,6 +324,41 @@ def detect_software() -> dict:
         return {"software": detect_installed_software(adapter_status=_adapter_status_map())}
     except Exception as exc:  # noqa: BLE001 - scanning must never 500 the panel
         return {"software": [], "error": f"检测失败：{exc}"}
+
+
+_SOFTWARE_NAMES = {"blender": "Blender", "sketchup": "SketchUp", "rhino": "Rhino", "autocad": "AutoCAD"}
+
+
+@router.get("/config/software/status")
+def software_status() -> dict:
+    """受支持软件状态面板：安装状态 + 运行状态 + 连接状态（无需手动扫描）。"""
+
+    try:
+        software = detect_installed_software(adapter_status=_adapter_status_map())
+        running = detect_running_software()
+        configs = {config.host_kind: config for config in host_config_service.list_configs()}
+        items = []
+        for item in software:
+            kind = item["host_kind"]
+            connected = False
+            config = configs.get(kind)
+            if config is not None:
+                try:
+                    connected = host_config_service.status(config.host_id).health_ok
+                except Exception:  # noqa: BLE001 - a single host must not break the panel
+                    connected = False
+            items.append(
+                {
+                    "host_kind": kind,
+                    "name": _SOFTWARE_NAMES.get(kind, kind),
+                    "installed": bool(item["detected"]),
+                    "running": bool(running.get(kind, False)),
+                    "connected": connected,
+                }
+            )
+        return {"software": items}
+    except Exception as exc:  # noqa: BLE001
+        return {"software": [], "error": f"状态获取失败：{exc}"}
 
 
 @router.post("/config/hosts/{host_id}/connect")

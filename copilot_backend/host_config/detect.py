@@ -179,6 +179,59 @@ _DETECTORS = {
     "autocad": detect_autocad_installations,
 }
 
+# 进程名 -> host_kind，用于"是否正在运行"状态展示。
+_EXECUTABLE_KINDS = {
+    "blender.exe": "blender",
+    "blender-launcher.exe": "blender",
+    "sketchup.exe": "sketchup",
+    "rhino.exe": "rhino",
+    "acad.exe": "autocad",
+}
+
+
+def _running_process_names() -> set:
+    """Enumerate running process image names via Windows API (no pipes)."""
+
+    names = set()
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.windll.kernel32
+        psapi = ctypes.windll.psapi
+        process_ids = (wintypes.DWORD * 4096)()
+        needed = wintypes.DWORD()
+        if not kernel32.K32EnumProcesses(ctypes.byref(process_ids), ctypes.sizeof(process_ids), ctypes.byref(needed)):
+            return names
+        count = needed.value // ctypes.sizeof(wintypes.DWORD)
+        for index in range(count):
+            pid = process_ids[index]
+            handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+            if not handle:
+                continue
+            try:
+                buffer = ctypes.create_unicode_buffer(1024)
+                size = wintypes.DWORD(1024)
+                if psapi.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
+                    names.add(buffer.value.rsplit("\\", 1)[-1].lower())
+            finally:
+                kernel32.CloseHandle(handle)
+    except Exception:  # noqa: BLE001 - status display must never crash
+        return set()
+    return names
+
+
+def detect_running_software(kinds: Optional[List[str]] = None) -> Dict[str, bool]:
+    """Map host_kind -> whether the software process is currently running."""
+
+    names = _running_process_names()
+    wanted = set(kinds or SUPPORTED_SOFTWARE)
+    result: Dict[str, bool] = {}
+    for exe, kind in _EXECUTABLE_KINDS.items():
+        if kind in wanted and kind not in result:
+            result[kind] = exe in names
+    return result
+
 
 def detect_installed_software(
     kinds: Optional[List[str]] = None,
@@ -221,5 +274,6 @@ __all__ = [
     "detect_blender_installations",
     "detect_installed_software",
     "detect_rhino_installations",
+    "detect_running_software",
     "detect_sketchup_installations",
 ]
