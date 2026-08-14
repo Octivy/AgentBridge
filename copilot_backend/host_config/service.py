@@ -9,6 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from host_config.events import (
+    BRIDGE_STARTED,
+    BRIDGE_STOPPED,
+    ConnectionEventLog,
+    connection_event_log,
+)
 from host_config.models import (
     HostAdapterConfig,
     HostConfigCreate,
@@ -36,9 +42,11 @@ class HostConfigService:
         self,
         store: Optional[HostConfigStore] = None,
         registry_dir: Optional[Path] = None,
+        events: Optional[ConnectionEventLog] = None,
     ) -> None:
         self._store = store or HostConfigStore(repo_root=_repo_root())
         self._registry_dir = Path(registry_dir or default_registry_dir())
+        self._events = events
         self._processes: Dict[str, subprocess.Popen] = {}
         self._lock = threading.RLock()
 
@@ -116,6 +124,8 @@ class HostConfigService:
                 creationflags=creationflags,
             )
             self._processes[host_id] = process
+        if self._events is not None:
+            self._events.record(host_id, BRIDGE_STARTED, "桥进程已启动")
         return self.status(host_id)
 
     def stop(self, host_id: str) -> HostConfigStatus:
@@ -130,6 +140,8 @@ class HostConfigService:
                     )
                 else:
                     process.terminate()
+        if self._events is not None:
+            self._events.record(host_id, BRIDGE_STOPPED, "桥进程已停止")
         return self.status(host_id)
 
     def auto_start(self) -> List[HostConfigStatus]:
@@ -227,7 +239,7 @@ class HostConfigService:
         )
 
 
-host_config_service = HostConfigService()
+host_config_service = HostConfigService(events=connection_event_log)
 
 
 __all__ = ["HostConfigService", "host_config_service"]

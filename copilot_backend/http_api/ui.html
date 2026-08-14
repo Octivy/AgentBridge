@@ -256,6 +256,16 @@
       <h2 style="margin-top:16px">注册错误</h2>
       <div id="error-list" class="empty">无</div>
     </section>
+    <section>
+      <h2>连接自愈（守护桥进程）</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button type="button" class="sm" id="btn-heal-start">启动守护</button>
+        <button type="button" class="sm ghost" id="btn-heal-stop">停止守护</button>
+        <button type="button" class="sm ghost" id="btn-events-clear">清空事件</button>
+        <span class="card-meta" id="heal-status">加载中…</span>
+      </div>
+      <div id="event-list" class="empty">加载中…</div>
+    </section>
   </main>
 
   <!-- Agent 接入 -->
@@ -911,9 +921,47 @@
         const r = await api("/config/registry/cleanup", { method: "POST" });
         alert(r.count ? `已清理 ${r.count} 条陈旧注册：\n${r.removed.join("\n")}` : "没有需要清理的陈旧注册");
         loadHosts();
+        loadHeal();
       } catch (err) {
         alert("清理失败：" + err.message);
       }
+    });
+
+    // ---------- 连接自愈 ----------
+    async function loadHeal() {
+      try {
+        const [heal, events] = await Promise.all([
+          api("/config/connection/heal"),
+          api("/config/connection/events?limit=50"),
+        ]);
+        const restarts = Object.entries(heal.restarts_in_window || {}).map(([id, n]) => `${id}×${n}`).join("、") || "无";
+        $("heal-status").textContent =
+          `${heal.running ? "守护运行中" : "守护未运行"} · 重启预算 ${heal.max_restarts_per_window} 次/${Math.round((heal.restart_window_seconds || 300) / 60)} 分钟 · 窗口内已重启：${restarts}`;
+        const items = events.events || [];
+        $("event-list").innerHTML = items.length
+          ? items.map((e) => {
+              const color = e.level === "warning" ? "#f5d28e" : e.level === "error" ? "#f0a3a3" : "#8ee6b0";
+              const when = (e.ts || "").slice(11, 19);
+              return `<div class="card-meta" style="display:flex;gap:8px;justify-content:space-between;align-items:baseline">
+                <span>${when} ${e.host_id ? `<b>${esc(e.host_id)}</b> · ` : ""}${esc(e.message)}</span>
+                <span style="color:${color};white-space:nowrap">${esc(e.kind)}</span>
+              </div>`;
+            }).join("")
+          : '<span class="empty">暂无连接事件</span>';
+      } catch (err) {
+        $("heal-status").textContent = "无法加载自愈状态";
+        $("event-list").innerHTML = `<p class="empty">${esc(err.message)}</p>`;
+      }
+    }
+
+    $("btn-heal-start").addEventListener("click", async () => {
+      try { await api("/config/connection/heal/start", { method: "POST" }); loadHeal(); } catch (err) { alert("启动守护失败：" + err.message); }
+    });
+    $("btn-heal-stop").addEventListener("click", async () => {
+      try { await api("/config/connection/heal/stop", { method: "POST" }); loadHeal(); } catch (err) { alert("停止守护失败：" + err.message); }
+    });
+    $("btn-events-clear").addEventListener("click", async () => {
+      try { await api("/config/connection/events/clear", { method: "POST" }); loadHeal(); } catch (err) { alert("清空失败：" + err.message); }
     });
 
     // ---------- 对话 ----------
@@ -1305,7 +1353,7 @@
       });
       if (section === "overview") loadOverview();
       if (section === "software") loadConfigs();
-      if (section === "monitor") loadHosts();
+      if (section === "monitor") { loadHosts(); loadHeal(); }
       if (section === "agents") loadMcpPanel();
       if (section === "tasks") loadDelivery();
       if (section === "settings") loadModelSettings();

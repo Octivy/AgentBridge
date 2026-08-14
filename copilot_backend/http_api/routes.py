@@ -19,6 +19,8 @@ from delivery.models import DeliverableCreate, DeliveryTaskView, HandoffUpdate
 from delivery.service import delivery_service
 from host_config.connect import HostConnector, cleanup_stale_registrations
 from host_config.detect import autocad_plugin_status, detect_installed_software
+from host_config.events import STALE_REGISTRATION_CLEANED, connection_event_log
+from host_config.heal import bridge_supervisor
 from host_config.models import (
     HostAdapterConfig,
     HostConfigCreate,
@@ -323,7 +325,46 @@ def connect_host_config(host_id: str) -> dict:
 def registry_cleanup() -> dict:
     """清理进程已不存在的陈旧宿主注册，让"检查连接状态"反映真实在线情况。"""
 
-    return cleanup_stale_registrations()
+    result = cleanup_stale_registrations()
+    removed = result.get("removed") or []
+    if removed:
+        connection_event_log.record(
+            "",
+            STALE_REGISTRATION_CLEANED,
+            f"清理陈旧宿主注册 {len(removed)} 个：{', '.join(removed)}",
+        )
+    return result
+
+
+# ----- 连接自愈可见化（事件流 + 桥进程守护） -----
+
+
+@router.get("/config/connection/events")
+def list_connection_events(limit: int = 50) -> dict:
+    events = connection_event_log.list(limit=limit)
+    return {"events": events, "count": len(events)}
+
+
+@router.post("/config/connection/events/clear")
+def clear_connection_events() -> dict:
+    return connection_event_log.clear()
+
+
+@router.get("/config/connection/heal")
+def connection_heal_status() -> dict:
+    return bridge_supervisor.status()
+
+
+@router.post("/config/connection/heal/start")
+def connection_heal_start() -> dict:
+    started = bridge_supervisor.start()
+    return {**bridge_supervisor.status(), "started": started}
+
+
+@router.post("/config/connection/heal/stop")
+def connection_heal_stop() -> dict:
+    bridge_supervisor.stop()
+    return bridge_supervisor.status()
 
 
 # ----- Agent 接入（MCP 注册管理） -----
