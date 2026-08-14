@@ -24,11 +24,22 @@ dotnet build .\desktop\AgentBridge.Desktop\AgentBridge.Desktop.csproj -c Release
 .\AgentBridge.Desktop.exe "H:\codex\AgentBridge"
 ```
 
+## 安装器（Inno Setup）
+
+产出 `dist\AgentBridge-Setup-<版本>.exe`，目标机器无需预装 Python / .NET：
+
+```powershell
+.\scripts\pack-desktop-installer.ps1 -CompileWithIscc -Version 1.0.0   # 打包 + 编译
+.\scripts\test-installer-bootstrap.ps1 -Version 1.0.0                  # 静默安装→启动→健康→卸载
+```
+
+安装布局与说明见仓库根 README「安装器（Inno Setup）」一节。
+
 ## 依赖
 
-- .NET 8 SDK / Runtime
-- WebView2 Runtime（Windows 10/11 一般自带）
-- backend Python 环境（uvicorn 等，见仓库根 README）
+- .NET 8 SDK / Runtime（开发与调试；**安装器版本自包含，无需目标机器安装**）
+- WebView2 Runtime（Windows 10/11 一般自带，安装器会在缺失时提示）
+- backend Python 环境（开发用；**安装器版本内置 `backend\runtime` 运行时**）
 
 ## 配置中心 API（backend 侧）
 

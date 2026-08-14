@@ -7,7 +7,8 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $candidates = @(
     (Join-Path $projectRoot ".venv\Scripts\python.exe"),
-    (Join-Path $projectRoot "copilot_backend\.venv\Scripts\python.exe")
+    (Join-Path $projectRoot "copilot_backend\.venv\Scripts\python.exe"),
+    (Join-Path $projectRoot "runtime\python.exe")
 )
 $python = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (-not $python) {

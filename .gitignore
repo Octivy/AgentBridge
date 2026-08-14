@@ -32,3 +32,8 @@ _debug_*.py
 _diag.py
 _diag_out.txt
 _plan_view.png
+
+# 安装器构建产物与按需下载的文件
+dist/installer-stage/
+dist/runtime/
+desktop/installer/ChineseSimplified.isl

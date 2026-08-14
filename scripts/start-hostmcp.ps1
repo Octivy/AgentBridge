@@ -9,7 +9,8 @@ $backendRoot = Join-Path $projectRoot "copilot_backend"
 
 $candidates = @(
     (Join-Path $projectRoot ".venv\Scripts\python.exe"),
-    (Join-Path $backendRoot ".venv\Scripts\python.exe")
+    (Join-Path $backendRoot ".venv\Scripts\python.exe"),
+    (Join-Path $projectRoot "runtime\python.exe")
 )
 $python = $candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (-not $python) {

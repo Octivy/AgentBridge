@@ -95,7 +95,7 @@ public sealed class BackendHost : IDisposable
         var python = ResolvePython(backendDir);
         if (string.IsNullOrWhiteSpace(python))
         {
-            SetState(BackendState.Error, "python not found (tried .venv and system python)");
+            SetState(BackendState.Error, "python not found (tried .venv, bundled runtime and system python)");
             return;
         }
 
@@ -240,6 +240,9 @@ public sealed class BackendHost : IDisposable
         {
             Path.Combine(backendDir, ".venv", "Scripts", "python.exe"),
             Path.Combine(Path.GetDirectoryName(backendDir) ?? backendDir, ".venv", "Scripts", "python.exe"),
+            // Installed layout: <install>\backend\runtime\python.exe (embedded runtime
+            // bundled by the Inno Setup installer; no system Python required).
+            Path.Combine(Path.GetDirectoryName(backendDir) ?? backendDir, "runtime", "python.exe"),
         };
         foreach (var candidate in candidates)
         {

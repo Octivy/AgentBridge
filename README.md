@@ -134,6 +134,25 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8000
 
 项目级 Codex 配置位于 `.codex/config.toml`；其他 MCP Host 注册见 `.mcp.json`。
 
+## 安装器（Inno Setup）
+
+一键产出 `AgentBridge-Setup-<版本>.exe`：目标机器**无需预装 Python / .NET**（自包含
+发布 + 内嵌 Python 运行时），装完即有开始菜单快捷方式与卸载器。
+
+```powershell
+# 1. 打包安装源并编译安装器（首次会下载 Inno Setup 依赖与 Python embeddable）
+.\scripts\pack-desktop-installer.ps1 -CompileWithIscc -Version 1.0.0
+
+# 2. 产物：dist\AgentBridge-Setup-1.0.0.exe
+
+# 3. 自举验证：静默安装到临时目录 → 启动 → backend /health 就绪 → 静默卸载
+.\scripts\test-installer-bootstrap.ps1 -Version 1.0.0
+```
+
+安装布局：`{安装目录}\app`（桌面端）、`{安装目录}\backend\copilot_backend`（后端）、
+`backend\adapters`（宿主适配器）、`backend\scripts`（桥启动脚本）、
+`backend\runtime`（内嵌 Python + 依赖 + cadmcp）。
+
 ## 验证
 
 ```powershell
