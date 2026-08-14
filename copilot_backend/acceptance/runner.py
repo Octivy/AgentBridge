@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -22,6 +23,17 @@ from cadmcp.tool_registry import PRODUCT_MVP_TOOL_NAMES
 from gateway.provider_client import call_provider
 from shared import settings
 from shared.schemas import ChatMessageRequest
+
+
+def _backend_port() -> int:
+    raw = os.getenv("AGENTBRIDGE_PORT", "").strip()
+    if raw.isdigit():
+        return int(raw)
+    return 8000
+
+
+def _backend_url(path: str = "") -> str:
+    return f"http://127.0.0.1:{_backend_port()}{path}"
 
 
 STATUS_PASSED = "passed"
@@ -97,12 +109,12 @@ class ConnectorAcceptanceRunner:
                 check_id="backend_diagnostics",
                 name="Backend five-layer diagnostics",
                 status=STATUS_BLOCKED,
-                summary="Backend port 8000 is not listening.",
+                summary=f"Backend port {_backend_port()} is not listening.",
                 recovery_action="Start the backend with start-local-dev.ps1 and rerun acceptance.",
             )
         try:
             async with httpx.AsyncClient(timeout=10, trust_env=False) as client:
-                response = await client.get("http://127.0.0.1:8000/connector/diagnostics")
+                response = await client.get(_backend_url("/connector/diagnostics"))
             response.raise_for_status()
             payload = response.json()
             components = payload.get("components", []) if isinstance(payload, dict) else []
@@ -382,7 +394,7 @@ def detect_environment(root: Path) -> dict[str, Any]:
         "platform": sys.platform,
         "python": sys.version.split()[0],
         "autocad_running": _process_running("acad.exe"),
-        "backend_port_open": _port_open(8000),
+        "backend_port_open": _port_open(_backend_port()),
         "bridge_port_open": _port_open(8765),
         "ollama_port_open": _port_open(11434),
         "codex_available": bool(shutil.which("codex")) or (root / ".codex" / "config.toml").exists(),

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Text.Json;
 
 namespace AgentBridge.Desktop.Services;
 
@@ -12,7 +13,10 @@ namespace AgentBridge.Desktop.Services;
 public sealed class BackendHost : IDisposable
 {
     public const string BackendHostAddress = "127.0.0.1";
-    public const int BackendPort = 8000;
+    public const int DefaultBackendPort = 8000;
+
+    /// <summary>Actual backend port: AGENTBRIDGE_PORT env -> client.json -> 8000.</summary>
+    public static readonly int BackendPort = ResolveBackendPort();
     public static readonly string BackendUrl = $"http://{BackendHostAddress}:{BackendPort}";
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(3) };
@@ -252,6 +256,42 @@ public sealed class BackendHost : IDisposable
             }
         }
         return "python";
+    }
+
+    private static int ResolveBackendPort()
+    {
+        // 1. explicit environment override (AGENTBRIDGE_PORT=8210)
+        if (TryParsePort(Environment.GetEnvironmentVariable("AGENTBRIDGE_PORT"), out var port))
+        {
+            return port;
+        }
+        // 2. persistent client config (%LOCALAPPDATA%\AgentBridge\client.json)
+        try
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var configPath = Path.Combine(appData, "AgentBridge", "client.json");
+            if (File.Exists(configPath))
+            {
+                using var document = JsonDocument.Parse(File.ReadAllText(configPath));
+                if (document.RootElement.TryGetProperty("backend_port", out var element) &&
+                    element.TryGetInt32(out var configured) &&
+                    configured is > 0 and < 65536)
+                {
+                    return configured;
+                }
+            }
+        }
+        catch
+        {
+            // config read errors fall back to the default port
+        }
+        return DefaultBackendPort;
+    }
+
+    private static bool TryParsePort(string? value, out int port)
+    {
+        port = 0;
+        return int.TryParse(value, out port) && port is > 0 and < 65536;
     }
 
     private static string ResolveBackendDir(string repoRoot)

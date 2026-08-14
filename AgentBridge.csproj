@@ -26,6 +26,9 @@
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2016' and Exists('D:\\Program Files\\Autodesk\\AutoCAD 2016\\acmgd.dll')">D:\\Program Files\\Autodesk\\AutoCAD 2016</AutoCADInstallDir>
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and Exists('D:\\Program Files\\Autodesk\\AutoCAD 2024\\acmgd.dll')">D:\\Program Files\\Autodesk\\AutoCAD 2024</AutoCADInstallDir>
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == ''">C:\\Program Files\\Autodesk\\AutoCAD 2024</AutoCADInstallDir>
+    <!-- Build/publish outputs (self-contained runtime DLLs under dist\ etc.)
+         must never become candidate references of the net48 plugin build. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);dist\**;artifacts\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>

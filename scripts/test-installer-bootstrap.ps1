@@ -1,6 +1,7 @@
 param(
     [string]$Version = "1.0.0",
-    [string]$InstallDir = ""
+    [string]$InstallDir = "",
+    [int]$Port = 8000
 )
 
 <#
@@ -16,6 +17,7 @@ $setup = Join-Path $repoRoot "dist\AgentBridge-Setup-$Version.exe"
 if (-not (Test-Path -LiteralPath $setup)) {
     throw "setup not found: $setup (run scripts\pack-desktop-installer.ps1 -CompileWithIscc first)"
 }
+if ($Port -le 0 -or $Port -ge 65536) { throw "invalid port: $Port" }
 if ([string]::IsNullOrWhiteSpace($InstallDir)) {
     $InstallDir = Join-Path $env:TEMP "AgentBridge-Install-Test"
 }
@@ -31,7 +33,8 @@ if (-not (Test-Path -LiteralPath $exe)) { throw "installed exe not found: $exe" 
 $runtime = Join-Path $InstallDir "backend\runtime\python.exe"
 if (-not (Test-Path -LiteralPath $runtime)) { throw "bundled runtime not found: $runtime" }
 
-Write-Host "[2/4] launch desktop app (starts backend with bundled runtime)"
+Write-Host "[2/4] launch desktop app (starts backend with bundled runtime, port $Port)"
+$env:AGENTBRIDGE_PORT = [string]$Port
 Start-Process -FilePath $exe
 
 Write-Host "[3/4] wait for backend health..."
@@ -39,7 +42,7 @@ $ok = $false
 for ($i = 0; $i -lt 30; $i++) {
     Start-Sleep -Seconds 2
     try {
-        $health = Invoke-RestMethod "http://127.0.0.1:8000/health" -TimeoutSec 3
+        $health = Invoke-RestMethod "http://127.0.0.1:$Port/health" -TimeoutSec 3
         Write-Host "backend health: status=$($health.status) version=$($health.version)"
         $ok = $true
         break

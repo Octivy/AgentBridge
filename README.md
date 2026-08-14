@@ -153,6 +153,18 @@ python -m uvicorn app:app --host 127.0.0.1 --port 8000
 `backend\adapters`（宿主适配器）、`backend\scripts`（桥启动脚本）、
 `backend\runtime`（内嵌 Python + 依赖 + cadmcp）。
 
+### 更换后端端口（默认 8000）
+
+当 8000 被其他程序占用（如本机 DeepSeek Harness），三种方式指定端口，优先级从高到低：
+
+1. 环境变量：`$env:AGENTBRIDGE_PORT=8210` 后启动 `AgentBridge.Desktop.exe`；
+2. 配置文件：新建 `%LOCALAPPDATA%\AgentBridge\client.json`，内容 `{"backend_port": 8210}`（持久生效）；
+3. 都不设置时用默认 8000。
+
+面板、交付、自愈等功能同源自动跟随新端口。**AutoCAD 插件**侧的
+`CADCOPILOT_API_BASE_URL` 需与端口一致（插件设置界面或 `agentbridge.config.json` 中修改；
+插件本地桥走独立的 8765 端口，不受影响）。
+
 ## 验证
 
 ```powershell
