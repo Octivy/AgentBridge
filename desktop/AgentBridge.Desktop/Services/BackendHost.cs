@@ -92,6 +92,7 @@ public sealed class BackendHost : IDisposable
         var backendDir = ResolveBackendDir(_repoRoot);
         if (!Directory.Exists(backendDir))
         {
+            Log($"backend directory not found: {backendDir} (repo={_repoRoot})");
             SetState(BackendState.Error, $"backend directory not found: {backendDir}");
             return;
         }
@@ -99,6 +100,7 @@ public sealed class BackendHost : IDisposable
         var python = ResolvePython(backendDir);
         if (string.IsNullOrWhiteSpace(python))
         {
+            Log("python not found (tried .venv, bundled runtime and system python)");
             SetState(BackendState.Error, "python not found (tried .venv, bundled runtime and system python)");
             return;
         }
@@ -322,10 +324,19 @@ public sealed class BackendHost : IDisposable
             }
             directory = directory.Parent;
         }
-        var bundled = Path.Combine(AppContext.BaseDirectory, "backend", "copilot_backend");
-        if (Directory.Exists(bundled))
+        // Installed layout: the exe lives in <install>\app, the backend bundle in
+        // <install>\backend. Check both next to the exe and one level up.
+        var candidates = new[]
         {
-            return AppContext.BaseDirectory;
+            Path.Combine(AppContext.BaseDirectory, "backend", "copilot_backend"),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "backend", "copilot_backend")),
+        };
+        foreach (var candidate in candidates)
+        {
+            if (Directory.Exists(candidate))
+            {
+                return Path.GetDirectoryName(Path.GetDirectoryName(candidate)) ?? AppContext.BaseDirectory;
+            }
         }
         return Directory.GetCurrentDirectory();
     }
