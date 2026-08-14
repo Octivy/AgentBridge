@@ -9,11 +9,28 @@
     * { box-sizing: border-box; }
     body {
       margin: 0; font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
-      background: #12141a; color: #e6e8ee; padding: 20px;
+      background: #12141a; color: #e6e8ee;
     }
-    header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-    h1 { font-size: 20px; margin: 0; }
-    #health { color: #9aa3b2; font-size: 13px; }
+    /* 左侧导航布局 */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 210px; flex-shrink: 0; background: #161a24;
+      border-right: 1px solid #262c3a; padding: 18px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar .brand { font-size: 20px; font-weight: 700; color: #e6e8ee; }
+    .sidebar .brand-sub { font-size: 11px; color: #7d8798; margin: 2px 0 16px; }
+    nav.tabs { display: flex; flex-direction: column; gap: 4px; }
+    nav.tabs button {
+      background: transparent; color: #9aa3b2; border: 0; border-radius: 8px;
+      padding: 9px 14px; font-size: 13px; cursor: pointer; text-align: left; width: 100%;
+    }
+    nav.tabs button:hover { background: #1d2433; color: #e6e8ee; }
+    nav.tabs button.active { background: #1f3a6e; color: #fff; }
+    .sidebar .side-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid #262c3a; }
+    #health { color: #9aa3b2; font-size: 12px; display: block; margin-bottom: 8px; word-break: break-all; }
+    .content { flex: 1; padding: 18px 22px; min-width: 0; }
     button, .btn {
       background: #2b6de8; color: #fff; border: 0; border-radius: 6px;
       padding: 7px 14px; cursor: pointer; font-size: 13px;
@@ -25,12 +42,6 @@
     button.danger:hover { background: #a63b3b; }
     button.sm { padding: 4px 10px; font-size: 12px; }
     button:disabled { opacity: 0.45; cursor: not-allowed; }
-    nav.tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
-    nav.tabs button {
-      background: transparent; color: #9aa3b2; border: 1px solid #262c3a;
-      border-radius: 999px; padding: 6px 16px; font-size: 13px;
-    }
-    nav.tabs button.active { background: #1f3a6e; color: #fff; border-color: #2b6de8; }
     main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     main.one { grid-template-columns: 1fr; }
     @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
@@ -98,18 +109,22 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>AgentBridge 桥接控制台</h1>
-    <span id="health">正在连接 backend…</span>
-    <button id="refresh">刷新</button>
-  </header>
-
-  <nav class="tabs" id="tabs">
-    <button data-section="overview" class="active">总览</button>
-    <button data-section="software">软件配置</button>
-    <button data-section="monitor">连接监控</button>
-    <button data-section="agents">Agent 接入</button>
-  </nav>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">AgentBridge</div>
+      <div class="brand-sub">Agent ⇄ 软件桥接控制台</div>
+      <nav class="tabs" id="tabs">
+        <button data-section="overview" class="active">总览</button>
+        <button data-section="software">软件配置</button>
+        <button data-section="monitor">连接监控</button>
+        <button data-section="agents">Agent 接入</button>
+      </nav>
+      <div class="side-foot">
+        <span id="health">正在连接 backend…</span>
+        <button id="refresh" class="sm ghost" style="width:100%">刷新</button>
+      </div>
+    </aside>
+    <div class="content">
 
   <!-- 总览 -->
   <main id="overview" class="one">
@@ -683,5 +698,7 @@
     route();
     setInterval(loadHealth, 10000);
   </script>
+    </div>
+  </div>
 </body>
 </html>

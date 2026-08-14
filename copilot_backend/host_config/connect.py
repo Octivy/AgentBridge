@@ -20,7 +20,7 @@ from typing import Callable, Dict, List, Optional
 
 from adapter_install.blender import install_blender_addon
 from adapter_install.rhino import install_rhino_adapter
-from adapter_install.sketchup import install_sketchup_extension
+from adapter_install.sketchup import install_sketchup_extension, _remove_stale_loose_copies
 from host_config.detect import autocad_plugin_status, detect_installed_software
 from host_config.models import HostAdapterConfig, HostConfigUpdate
 from host_config.service import HostConfigService
@@ -191,6 +191,24 @@ class HostConnector:
             steps.append(_step("install_adapter", True, f"{config.name} 无需安装适配器"))
             return
 
+        # SketchUp 老版本曾在 Plugins 目录留下裸拷贝，它会先加载并崩溃，
+        # 即使 .rbz 已装也必须每次清理。
+        if kind == "sketchup":
+            try:
+                stale = _remove_stale_loose_copies()
+            except Exception:  # noqa: BLE001
+                stale = []
+            if stale:
+                steps.append(
+                    _step(
+                        "install_adapter",
+                        True,
+                        f"已清理 {len(stale)} 个旧版裸拷贝（旧文件会导致宿主注册失败）",
+                    )
+                )
+            else:
+                steps.append(_step("install_adapter", True, "已检查：无旧版裸拷贝残留"))
+
         if detected.get("adapter_installed"):
             steps.append(_step("install_adapter", True, "适配器/插件已安装，跳过重复安装"))
             return
@@ -256,7 +274,18 @@ class HostConnector:
                 launched = bool(self._software_launcher(config.host_kind))
             except Exception:  # noqa: BLE001
                 launched = False
-        hint = (
+        kind_hints = {
+            "rhino": (
+                "打开 Rhino 后，在命令栏运行 _-RunPythonScript 并选择"
+                " %APPDATA%\\McNeel\\Rhinoceros\\8.0\\scripts\\AgentBridgeHost_startup.py，"
+                "完成注册后回来点“重新连接”或“测试连接”。"
+            ),
+            "autocad": (
+                "AutoCAD 插件需先从发布包安装（解压后运行 Install-AgentBridge.ps1），"
+                "随后启动 AutoCAD 会自动加载插件并注册，再回来点“测试连接”。"
+            ),
+        }
+        hint = kind_hints.get(config.host_kind) or (
             f"① 现在打开或重启 {config.name}（插件/适配器会自动完成注册）；"
             "② 回到面板点“重新连接”或“测试连接”，即可看到连接状态。"
         )
