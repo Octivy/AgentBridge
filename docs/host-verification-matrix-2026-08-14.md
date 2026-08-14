@@ -48,3 +48,47 @@
 - 单个宿主 8 步全绿 = 通过；任一步失败记录明确错误类别 + 恢复建议，修复后从失败步重跑。
 - 失败样本（宿主、工具、输入、期望、实际、日志）固化为 `copilot_backend/tests` 回归用例。
 - 全部宿主通过后，本轮"陌生人 10 分钟闭环"的连接与写安全链路视为在新链路上验收完毕。
+
+## 5. AutoCAD 首次实机验证（本机 2016）具体步骤
+
+AutoCAD 是唯一从未实机验证过的宿主，先跑它：
+
+```powershell
+# 1. 打包插件（本机是 2016，必须显式指定版本）
+.\scripts\build-plugin-package.ps1 -AutoCADVersion 2016
+
+# 2. 安装插件（解压产物后运行；或仓库根 install.ps1）
+.\Install-AgentBridge.ps1
+
+# 3. 重启 AutoCAD 2016，命令行执行
+TESTCOPILOT        # 期望：插件与本地 MCP 桥已加载，不修改图纸
+AISNAPSHOT         # 期望：%TEMP%\AgentBridge\snapshots\ 出现当前图纸快照
+
+# 4. 启动 cadmcp（面板"连接"也会自动拉起，可跳过）
+.\scripts\start-cadmcp.ps1
+```
+
+之后打开面板（桌面端或 `http://127.0.0.1:8000/ui`）→ 软件配置 → AutoCAD"连接"，
+然后按第 1 节 8 步矩阵走 13 工具，重点验证：
+
+- 只读：`cad_health_check` / `get_drawing_snapshot` / `list_layers` / `arch_get_drawing_context` / `arch_recognize_functional_objects`
+- 写（annotate）：`arch_extract_outer_outline` → `arch_draw_outer_outline`（确认卡 dry-run 预览 → 批准落盘 → 图纸可见闭合多段线）
+- 写（annotate）：`arch_apply_layer_mapping`（预览迁移建议 → 批准 → 图层已迁移 → 回滚恢复）
+- 拒绝路径：拒绝后图纸无变化，模型收到拒绝
+
+## 6. 交接遗留：两个窗的人工核对
+
+人工图纸已到位，按下面两个位置核对（坐标即图纸世界坐标），把结论填到"人工核对结论"列：
+
+| # | 洞口位置 | 宽 | 管线现状 | 要核对的问题 | 人工核对结论 |
+| --- | --- | --- | --- | --- | --- |
+| 1 | (40656530.8, 3303285.6) | 700 | 两侧墙线只有 100mm 短段，挂接依赖容差 | 该处是否真实窗户？两侧 100mm 短段是否为墙？ | 待填 |
+| 2 | (40682180.8, 3292735.6) | 1500 | 该处图纸无墙线（最近墙 1.35m 外） | 该处是否应有墙？是否为图纸漏画？ | 待填 |
+
+核对结论二选一：
+
+- **窗 1**：真实窗 → 在 `copilot_backend/scripts/project_corrections.json` 加校正项并调挂接容差后重跑管线；
+  不是窗 → 从数据中剔除该洞口。
+- **窗 2**：图纸漏画 → 补图后重导出 T3 DXF，或加校正项；无此窗 → 剔除。
+
+两个窗结论落定后重跑 `_build_floor_agent.py` 验证全部窗/门挂接归零，交接遗留即关闭。
