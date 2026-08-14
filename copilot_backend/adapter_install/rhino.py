@@ -39,9 +39,11 @@ _REGISTRY_DIR = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", 
 
 def _log(message):
     try:
+        import datetime
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
         with open(LOG_PATH, "a", encoding="utf-8") as handle:
-            handle.write(message + "\\n")
+            handle.write("[" + stamp + "] " + message + "\\n")
     except Exception:
         pass
 
@@ -52,7 +54,9 @@ try:
         sys.path.insert(0, _SCRIPTS_DIR)
 
     # Idempotent startup: if a live host is already registered for this Rhino
-    # process, do not start a second one (a second host freezes Rhino).
+    # process, do not start a second one (a second host freezes Rhino). If a
+    # registration for THIS process exists but the endpoint refuses connections
+    # (e.g. the adapter thread died), remove it and start fresh.
     _alive = False
     _pid = None
     try:
@@ -69,15 +73,22 @@ try:
                     _reg = json.load(_fh)
                 if not _pid or str(_reg.get("pid")) != _pid:
                     continue
-                _req = urllib.request.Request(
-                    _reg["endpoint"].rstrip("/") + "/health",
-                    headers={"x-cadcopilot-token": _reg.get("token", "")},
-                )
-                with urllib.request.urlopen(_req, timeout=1) as _resp:
-                    if _resp.status == 200:
-                        _alive = True
-                        _log("host already running; skipping duplicate startup")
-                        break
+                try:
+                    _req = urllib.request.Request(
+                        _reg["endpoint"].rstrip("/") + "/health",
+                        headers={"x-cadcopilot-token": _reg.get("token", "")},
+                    )
+                    with urllib.request.urlopen(_req, timeout=1) as _resp:
+                        if _resp.status == 200:
+                            _alive = True
+                            _log("host already running; skipping duplicate startup")
+                            break
+                except Exception:
+                    _log("stale registration for this process; removing " + _name)
+                    try:
+                        os.remove(os.path.join(_REGISTRY_DIR, _name))
+                    except Exception:
+                        pass
             except Exception:
                 continue
 
@@ -86,6 +97,41 @@ try:
     if not _alive:
         host.main()
         _log("host started")
+        # Post-start self-check: confirm the HTTP endpoint actually answers.
+        # Rhino 8's RhinoCode stages scripts and may unload the runtime when the
+        # startup command finishes, silently killing the host; surface that here
+        # instead of leaving a dead registration behind.
+        try:
+            import time as _time
+
+            _time.sleep(1.5)
+            _ok = False
+            if os.path.isdir(_REGISTRY_DIR):
+                for _name in os.listdir(_REGISTRY_DIR):
+                    if not _name.startswith("rhino-main-"):
+                        continue
+                    try:
+                        with open(os.path.join(_REGISTRY_DIR, _name), encoding="utf-8") as _fh:
+                            _reg = json.load(_fh)
+                        if _pid and str(_reg.get("pid")) != _pid:
+                            continue
+                        _req = urllib.request.Request(
+                            _reg["endpoint"].rstrip("/") + "/health",
+                            headers={"x-cadcopilot-token": _reg.get("token", "")},
+                        )
+                        with urllib.request.urlopen(_req, timeout=2) as _resp:
+                            if _resp.status == 200:
+                                _ok = True
+                                break
+                    except Exception:
+                        continue
+            if _ok:
+                _log("self-check ok: endpoint answering")
+            else:
+                _log("SELF-CHECK FAILED: host started but endpoint not answering; "
+                     "Rhino may have unloaded the script engine")
+        except Exception:
+            _log("self-check error: " + traceback.format_exc())
 except Exception:
     _log("ERROR: " + traceback.format_exc())
 '''

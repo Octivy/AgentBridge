@@ -51,6 +51,8 @@
                                      Style="{StaticResource NavRadioStyle}" Checked="Nav_Checked" Tag="agents" />
                         <RadioButton x:Name="NavTasks" Content="任务交付" GroupName="nav"
                                      Style="{StaticResource NavRadioStyle}" Checked="Nav_Checked" Tag="tasks" />
+                        <RadioButton x:Name="NavSettings" Content="设置" GroupName="nav"
+                                     Style="{StaticResource NavRadioStyle}" Checked="Nav_Checked" Tag="settings" />
                     </StackPanel>
                 </DockPanel>
             </Border>

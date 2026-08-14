@@ -76,12 +76,54 @@
     }
     .msg { margin-bottom: 8px; }
     .msg.user { color: #9fc6ff; }
-    form { display: flex; gap: 8px; }
+    form.inline { display: flex; gap: 8px; }
     .error-line { color: #f0a3a3; font-size: 12px; margin-top: 6px; min-height: 16px; }
+    .ok-line { color: #8ee6b0; font-size: 12px; margin-top: 6px; }
     pre.code {
       background: #12141a; border: 1px solid #262c3a; border-radius: 8px;
       padding: 10px; font-size: 12px; overflow: auto; white-space: pre-wrap;
     }
+    /* 首次运行向导 */
+    .wizard { border-color: #2b6de8; background: linear-gradient(135deg, #16203a 0%, #1a1e28 60%); }
+    .wizard-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 1000px) { .wizard-steps { grid-template-columns: 1fr 1fr; } }
+    .wizard-step {
+      background: #12141a; border: 1px solid #262c3a; border-radius: 8px; padding: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .wizard-step.done { border-color: #1d5c3a; }
+    .wizard-step .ws-title { font-size: 13px; font-weight: 600; }
+    .wizard-step .ws-state { font-size: 12px; color: #7d8798; }
+    .wizard-step.done .ws-state { color: #8ee6b0; }
+    /* 连接步骤进度 */
+    .connect-steps { margin-top: 10px; border-top: 1px dashed #262c3a; padding-top: 8px; }
+    .connect-steps .cs { font-size: 12px; margin: 3px 0; }
+    .connect-steps .cs .cs-detail { color: #7d8798; margin-left: 18px; display: block; }
+    .cs.ok::before { content: "✓ "; color: #8ee6b0; }
+    .cs.fail::before { content: "✗ "; color: #f0a3a3; }
+    .cs.run::before { content: "… "; color: #f5d28e; }
+    /* 任务输入 */
+    .task-hero textarea { min-height: 68px; font-size: 14px; }
+    .task-hero .row { margin-top: 10px; flex-wrap: wrap; }
+    .task-hero select { width: auto; }
+    /* Agent 任务时间线 */
+    .task-progress { border: 1px solid #2b3648; border-radius: 8px; padding: 12px; margin-top: 12px; }
+    .tp-status { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .tp-step { border-left: 2px solid #2b3648; padding: 2px 0 2px 10px; margin: 8px 0; }
+    .tp-think { font-size: 12px; color: #aeb8c8; margin-bottom: 4px; white-space: pre-wrap; }
+    .tp-final { margin-top: 10px; }
+    .chip.warn { border-color: #f5d28e; color: #f5d28e; }
+    /* 写确认卡片 */
+    .confirm-card { border: 1px solid #f5d28e; border-radius: 8px; padding: 12px; margin-top: 10px; background: #20241a; }
+    .confirm-card h3 { margin: 0 0 8px; font-size: 13px; color: #f5d28e; }
+    .confirm-card .row { margin-top: 10px; }
+    /* 交付物动作 */
+    .d-actions { margin-left: 8px; white-space: nowrap; }
+    .d-actions button { margin-left: 4px; }
+    .d-preview img { max-width: 480px; max-height: 320px; border: 1px solid #2b3648; border-radius: 6px; margin-top: 6px; }
+    .d-rollback { margin-top: 6px; padding: 8px; border: 1px dashed #2b3648; border-radius: 6px; }
+    .rb-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12px; }
+    .rb-row .rb-token { color: #7d8798; word-break: break-all; }
   </style>
 </head>
 <body>
@@ -97,18 +139,43 @@
     <button data-section="monitor">连接监控</button>
     <button data-section="agents">Agent 接入</button>
     <button data-section="tasks">任务交付</button>
+    <button data-section="settings">设置</button>
   </nav>
 
   <!-- 总览 -->
   <main id="overview" class="one">
+    <section id="wizard" class="wizard hidden">
+      <h2>快速上手：四步让智能体接管软件</h2>
+      <div class="wizard-steps" id="wizard-steps"></div>
+    </section>
+
+    <section class="task-hero">
+      <h2>给智能体下命令</h2>
+      <textarea id="hero-message" placeholder="例如：帮我汇总当前 Blender 场景；或：在 Blender 里创建一个球体并渲染截图"></textarea>
+      <div class="row">
+        <select id="hero-scope">
+          <option value="hosts">已连接软件（hosts）</option>
+          <option value="cadmcp">AutoCAD（cadmcp）</option>
+          <option value="all">全部工具（all）</option>
+        </select>
+        <select id="hero-approval">
+          <option value="full">全自动批准写操作</option>
+          <option value="annotate">写操作需确认</option>
+        </select>
+        <button type="button" id="btn-hero-run">运行任务</button>
+      </div>
+      <div id="hero-progress" class="hidden"></div>
+    </section>
+
     <section>
       <h2>运行总览</h2>
       <div id="overview-body">加载中…</div>
     </section>
+
     <section>
       <h2>对话</h2>
       <div id="messages"></div>
-      <form id="chat-form">
+      <form id="chat-form" class="inline">
         <input id="chat-input" placeholder="输入需求，例如：帮我汇总当前 Blender 场景" autocomplete="off">
         <button type="submit">发送</button>
       </form>
@@ -117,6 +184,14 @@
 
   <!-- 软件配置 -->
   <main id="software" class="hidden">
+    <section>
+      <h2>本机软件扫描</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button type="button" id="btn-scan">扫描本机软件</button>
+        <span class="card-meta">自动检测已安装的 Blender / SketchUp / Rhino / AutoCAD 及插件状态</span>
+      </div>
+      <div id="detect-list" class="empty">尚未扫描</div>
+    </section>
     <section>
       <h2>软件（Host 适配器）</h2>
       <div id="config-list">加载中…</div>
@@ -171,6 +246,10 @@
   <main id="monitor" class="hidden">
     <section>
       <h2>已注册宿主（Host Adapter Contract）</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button type="button" class="ghost sm" id="btn-clean-registry">清理陈旧注册</button>
+        <span class="card-meta">软件异常关闭后注册文件可能残留，清理后状态更准确</span>
+      </div>
       <div id="host-list">加载中…</div>
       <h2 style="margin-top:16px">Agent 工具</h2>
       <div id="tool-list">加载中…</div>
@@ -220,13 +299,7 @@
       <div class="row" style="margin-top:12px">
         <button type="button" id="btn-run-task">运行任务</button>
       </div>
-      <div class="error-line" id="at-error"></div>
-      <div id="at-result" class="hidden">
-        <h2 style="margin-top:12px">任务结果</h2>
-        <div id="at-summary" class="card-meta"></div>
-        <div id="at-tools" class="card-meta" style="margin-top:6px"></div>
-        <pre class="code" id="at-final" style="margin-top:8px"></pre>
-      </div>
+      <div id="at-progress" class="hidden"></div>
     </section>
     <section id="delivery-section">
       <h2>任务交付</h2>
@@ -281,11 +354,63 @@
     </section>
   </main>
 
+  <!-- 设置 -->
+  <main id="settings" class="hidden">
+    <section>
+      <h2>模型配置（智能体大脑）</h2>
+      <div class="card-meta" style="margin-bottom:8px">
+        选择模型服务商并填入 API Key，保存后对话与 Agent 任务立即生效，无需重启、无需编辑 .env。
+      </div>
+      <div class="grid2">
+        <div>
+          <label>服务商</label>
+          <select id="m-provider"></select>
+          <label>API 地址</label>
+          <input id="m-base-url" placeholder="https://api.deepseek.com/v1">
+          <label>模型名称</label>
+          <input id="m-model" placeholder="deepseek-v4">
+        </div>
+        <div>
+          <label>API Key</label>
+          <input id="m-api-key" type="password" placeholder="留空则保留已保存的 Key" autocomplete="new-password">
+          <label>协议</label>
+          <select id="m-protocol">
+            <option value="openai_chat">OpenAI Chat Completions</option>
+            <option value="openai_responses">OpenAI Responses</option>
+            <option value="anthropic_messages">Anthropic Messages</option>
+          </select>
+          <div class="check">
+            <input type="checkbox" id="m-enabled" checked>
+            <label for="m-enabled" style="margin:0">启用该服务商</label>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="btn-model-save">保存配置</button>
+        <button type="button" class="ghost" id="btn-model-test">静态校验</button>
+        <button type="button" class="ghost" id="btn-model-ping">真实连通测试</button>
+      </div>
+      <div class="error-line" id="model-error"></div>
+      <div class="ok-line" id="model-ok"></div>
+      <div id="model-checks" class="card-meta" style="margin-top:6px"></div>
+    </section>
+    <section>
+      <h2>已配置的服务商</h2>
+      <div id="model-list">加载中…</div>
+    </section>
+  </main>
+
   <script>
     const $ = (id) => document.getElementById(id);
 
     function badge(ok, text) {
       return `<span class="badge ${ok ? "ok" : "err"}">${text}</span>`;
+    }
+
+    function esc(text) {
+      const div = document.createElement("div");
+      div.textContent = String(text ?? "");
+      return div.innerHTML;
     }
 
     async function api(path, options) {
@@ -308,6 +433,78 @@
       }
     }
 
+    // ---------- 首次运行向导 ----------
+    function modelReady(modelConfig) {
+      const active = modelConfig.active_provider;
+      if (!active) return false;
+      const provider = (modelConfig.providers || []).find((p) => p.provider === active);
+      if (!provider || !provider.enabled) return false;
+      const keyless = ["ollama", "openai_compatible", "enterprise_private"].includes(provider.provider);
+      return !!(provider.api_base_url && provider.model && (provider.api_key_configured || keyless));
+    }
+
+    async function renderWizard() {
+      const wizard = $("wizard");
+      try {
+        const [configs, model, mcp, deliveries] = await Promise.all([
+          api("/config/hosts"),
+          api("/config/model"),
+          api("/config/mcp/status"),
+          api("/delivery/tasks?limit=1"),
+        ]);
+        const steps = [
+          {
+            title: "1. 连接一个软件",
+            done: configs.some((c) => c.health_ok),
+            hint: "检测 → 装插件 → 拉桥 → 验证，一键完成",
+            action: "software",
+          },
+          {
+            title: "2. 配置模型（大脑）",
+            done: modelReady(model),
+            hint: "选择服务商并填入 API Key",
+            action: "settings",
+          },
+          {
+            title: "3. 接入 Agent",
+            done: (mcp.codex_servers || []).length > 0,
+            hint: "一键写入 Codex / Claude 配置",
+            action: "agents",
+          },
+          {
+            title: "4. 运行第一个任务",
+            done: (deliveries || []).length > 0,
+            hint: "在上方输入一句话需求",
+            action: "task",
+          },
+        ];
+        if (steps.every((s) => s.done)) {
+          wizard.classList.add("hidden");
+          return;
+        }
+        wizard.classList.remove("hidden");
+        $("wizard-steps").innerHTML = steps.map((s, i) => `
+          <div class="wizard-step ${s.done ? "done" : ""}">
+            <span class="ws-title">${s.title}</span>
+            <span class="ws-state">${s.done ? "已完成" : esc(s.hint)}</span>
+            ${s.done ? "" : `<button class="sm" data-wizard="${s.action}">去完成</button>`}
+          </div>`).join("");
+        $("wizard-steps").querySelectorAll("button[data-wizard]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const target = btn.dataset.wizard;
+            if (target === "task") {
+              $("hero-message").focus();
+              $("hero-message").scrollIntoView({ behavior: "smooth" });
+            } else {
+              location.hash = target;
+            }
+          });
+        });
+      } catch (err) {
+        wizard.classList.add("hidden");
+      }
+    }
+
     // ---------- 总览 ----------
     async function loadOverview() {
       try {
@@ -318,12 +515,206 @@
           `<p>配置软件：<b>${configs.length}</b> 个；已注册宿主：<b>${regCount}</b>；健康在线：<b>${okCount}</b></p>` +
           `<p>宿主工具：<b>${hosts.tools.length}</b> 个</p>` +
           configs.map((c) =>
-            `<div class="card"><div class="card-head"><span class="card-title">${c.name}</span>` +
+            `<div class="card"><div class="card-head"><span class="card-title">${esc(c.name)}</span>` +
             (c.health_ok ? badge(true, "在线") : badge(false, "离线")) +
-            `<span class="card-meta">${c.host_kind} · ${c.product_version || "未注册"}</span></div></div>`
+            `<span class="card-meta">${esc(c.host_kind)} · ${esc(c.product_version || "未注册")}</span></div></div>`
           ).join("") || '<p class="empty">尚无配置</p>';
       } catch (err) {
         $("overview-body").textContent = "无法加载：" + err.message;
+      }
+      renderWizard();
+    }
+
+    // ---------- Agent 任务：异步执行 + 步骤时间线 + 写确认 ----------
+    const _taskPollers = new Map();
+
+    function taskStatusBadge(task) {
+      if (task.status === "running") return '<span class="badge warn">运行中…</span>';
+      if (task.status === "needs_confirmation") return '<span class="badge warn">等待写确认</span>';
+      if (task.status === "completed") {
+        return task.stopped_reason === "completed"
+          ? '<span class="badge ok">已完成</span>'
+          : `<span class="badge warn">已停止（${esc(task.stopped_reason || "")}）</span>`;
+      }
+      if (task.status === "failed") return '<span class="badge err">失败</span>';
+      if (task.status === "no_tools") return '<span class="badge err">无可用工具</span>';
+      return `<span class="badge off">${esc(task.status || "")}</span>`;
+    }
+
+    function renderAgentTask(mount, task) {
+      const steps = (task.steps || []).map((step) => {
+        const think = step.content ? `<div class="tp-think">${esc(step.content)}</div>` : "";
+        const tools = (step.executed_tools || []).map((t) =>
+          `<span class="chip">${esc(t.name)}${t.ok ? " ✓" : " ✗"}</span>`).join("");
+        const blocked = step.blocked_write
+          ? `<span class="chip warn">⏸ ${esc(step.blocked_write.name)}（等待确认）</span>` : "";
+        return `<div class="tp-step">${think}${tools}${blocked}</div>`;
+      }).join("");
+
+      let confirmCard = "";
+      if (task.status === "needs_confirmation" && task.pending_write) {
+        const pw = task.pending_write;
+        confirmCard = `
+          <div class="confirm-card">
+            <h3>智能体请求执行写操作</h3>
+            <div class="card-meta">工具：<b>${esc(pw.name || "")}</b></div>
+            <pre class="code">${esc(JSON.stringify(pw.arguments || {}, null, 2))}</pre>
+            <div class="row">
+              <button data-decision="true">批准并继续</button>
+              <button class="danger" data-decision="false">拒绝</button>
+            </div>
+            <div class="error-line" data-confirm-msg></div>
+          </div>`;
+      }
+
+      let finalBlock = "";
+      if (task.status === "completed") {
+        finalBlock = `<div class="tp-final"><pre class="code">${esc(task.final_text || "（无回复）")}</pre></div>`;
+      } else if (task.status === "failed") {
+        finalBlock = `<div class="tp-final error-line">任务失败：${esc(task.error || "未知错误")}</div>`;
+      } else if (task.status === "no_tools") {
+        finalBlock = `<div class="tp-final error-line">${esc(task.final_text || "")}</div>`;
+      }
+
+      mount.innerHTML = `
+        <div class="task-progress">
+          <div class="tp-status">任务 ${esc(task.task_id)} ${taskStatusBadge(task)}
+            <span class="card-meta">迭代 ${task.iterations || 0}/${task.max_iterations || 0}</span></div>
+          ${steps || (task.status === "running" ? '<div class="cs run">Agent 正在拆解需求…</div>' : "")}
+          ${confirmCard}
+          ${finalBlock}
+        </div>`;
+
+      mount.querySelectorAll("button[data-decision]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const approve = btn.dataset.decision === "true";
+          mount.querySelectorAll("button[data-decision]").forEach((b) => (b.disabled = true));
+          try {
+            await api(`/agent/tasks/${encodeURIComponent(task.task_id)}/confirm`, {
+              method: "POST",
+              body: JSON.stringify({ approve }),
+            });
+            scheduleTaskPoll(mount, 200);
+          } catch (err) {
+            const msg = mount.querySelector("[data-confirm-msg]");
+            if (msg) msg.textContent = "确认失败：" + err.message;
+            mount.querySelectorAll("button[data-decision]").forEach((b) => (b.disabled = false));
+          }
+        });
+      });
+    }
+
+    function scheduleTaskPoll(mount, delay = 800) {
+      const existing = _taskPollers.get(mount);
+      if (existing) clearTimeout(existing);
+      _taskPollers.set(mount, setTimeout(() => pollAgentTaskOnce(mount), delay));
+    }
+
+    async function pollAgentTaskOnce(mount) {
+      _taskPollers.delete(mount);
+      const taskId = mount.dataset.taskId;
+      let task;
+      try {
+        task = await api(`/agent/tasks/${encodeURIComponent(taskId)}`);
+      } catch (err) {
+        mount.innerHTML = `<div class="task-progress"><div class="error-line">无法读取任务：${esc(err.message)}</div></div>`;
+        return;
+      }
+      renderAgentTask(mount, task);
+      if (task.status === "running" || task.status === "needs_confirmation") {
+        // 等待确认时也继续轮询：用户可能在别的窗口确认，面板要自动跟上
+        scheduleTaskPoll(mount, task.status === "running" ? 800 : 2500);
+      } else {
+        renderWizard();
+        loadDelivery();
+      }
+    }
+
+    async function runAgentTask(message, scope, approval, mount, btn) {
+      mount.classList.remove("hidden");
+      mount.innerHTML = '<div class="task-progress"><div class="cs run">正在提交任务…</div></div>';
+      if (btn) btn.disabled = true;
+      try {
+        const data = await api("/agent/task", {
+          method: "POST",
+          body: JSON.stringify({ message, approval, tool_scope: scope, max_iterations: 12 }),
+        });
+        mount.dataset.taskId = data.task_id;
+        renderAgentTask(mount, data);
+        if (data.status === "running" || data.status === "needs_confirmation") {
+          scheduleTaskPoll(mount, 300);
+        } else {
+          renderWizard();
+        }
+      } catch (err) {
+        mount.innerHTML = `<div class="task-progress"><div class="error-line">任务失败：${esc(err.message)}</div></div>`;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    $("btn-hero-run").addEventListener("click", () => {
+      const message = $("hero-message").value.trim();
+      if (!message) return;
+      runAgentTask(message, $("hero-scope").value, $("hero-approval").value, $("hero-progress"), $("btn-hero-run"));
+    });
+
+    // ---------- 本机软件扫描 ----------
+    $("btn-scan").addEventListener("click", async () => {
+      const box = $("detect-list");
+      box.textContent = "扫描中…";
+      try {
+        const data = await api("/config/detect");
+        const items = data.software || [];
+        const configs = await api("/config/hosts");
+        const byKind = Object.fromEntries(configs.map((c) => [c.host_kind, c]));
+        box.innerHTML = items.map((item) => {
+          const config = byKind[item.host_kind];
+          const versions = (item.installations || []).map((v) => esc(v.version || v.install_path || "")).filter(Boolean).slice(0, 3).join("、");
+          const state = item.detected
+            ? badge(true, "已安装") + (item.adapter_installed ? '<span class="badge ok">插件已装</span>' : '<span class="badge warn">插件未装</span>')
+            : badge(false, "未检测到");
+          const action = item.detected && config
+            ? `<button class="sm" data-connect="${esc(config.host_id)}">${config.health_ok ? "重新连接" : "一键连接"}</button>`
+            : "";
+          return `<div class="card"><div class="card-head"><span class="card-title">${esc(item.host_kind)}</span>${state}</div>
+            <div class="card-meta">${versions || "-"}</div>
+            <div class="card-actions">${action}</div>
+            <div class="connect-steps hidden" id="scan-steps-${esc(item.host_kind)}"></div></div>`;
+        }).join("") || '<p class="empty">未检测到受支持的软件</p>';
+        box.querySelectorAll("button[data-connect]").forEach((btn) => {
+          btn.addEventListener("click", () => connectHost(btn.dataset.connect, btn));
+        });
+      } catch (err) {
+        box.textContent = "扫描失败：" + err.message;
+      }
+    });
+
+    // ---------- 一键连接（统一编排） ----------
+    async function connectHost(hostId, btn) {
+      const stepsBox = document.querySelector(`.card[data-id="${hostId}"] .connect-steps`) || $("scan-steps-" + hostId);
+      if (btn) btn.disabled = true;
+      if (stepsBox) {
+        stepsBox.classList.remove("hidden");
+        stepsBox.innerHTML = '<div class="cs run">正在连接：检测软件 → 安装插件 → 启动桥接 → 等待注册 → 健康检查…</div>';
+      }
+      try {
+        const result = await api(`/config/hosts/${hostId}/connect`, { method: "POST" });
+        if (stepsBox) {
+          stepsBox.innerHTML = (result.steps || []).map((s) =>
+            `<div class="cs ${s.ok ? "ok" : "fail"}">${esc(s.message)}` +
+            (s.detail ? `<span class="cs-detail">${esc(s.detail)}</span>` : "") +
+            `</div>`
+          ).join("") +
+          `<div class="cs ${result.ok ? "ok" : "fail"}"><b>${esc(result.summary || "")}</b></div>`;
+        }
+        await Promise.all([loadConfigs(), loadOverview()]);
+      } catch (err) {
+        if (stepsBox) {
+          stepsBox.innerHTML = `<div class="cs fail">连接失败：${esc(err.message)}</div>`;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -348,23 +739,25 @@
         c.process_running ? badge(false, "进程运行") :
         c.enabled ? badge(false, "离线") : badge(false, "已停用");
       const stateBadge = c.enabled ? "" : '<span class="badge off">未启用</span>';
-      return `<div class="card" data-id="${c.host_id}">
+      return `<div class="card" data-id="${esc(c.host_id)}">
         <div class="card-head">
-          <span class="card-title">${c.name}</span>${status}${stateBadge}
-          <span class="card-meta">${c.host_id} · ${c.host_kind}${c.auto_start ? " · 自动启动" : ""}</span>
+          <span class="card-title">${esc(c.name)}</span>${status}${stateBadge}
+          <span class="card-meta">${esc(c.host_id)} · ${esc(c.host_kind)}${c.auto_start ? " · 自动启动" : ""}</span>
         </div>
-        <div class="card-meta">产品：${c.product || "-"} · 版本：${c.product_version || "-"} · 端点：${c.endpoint || "-"}</div>
-        ${c.error ? `<div class="card-meta" style="color:#f0a3a3">${c.error}</div>` : ""}
+        <div class="card-meta">产品：${esc(c.product || "-")} · 版本：${esc(c.product_version || "-")} · 端点：${esc(c.endpoint || "-")}</div>
+        ${c.error ? `<div class="card-meta" style="color:#f0a3a3">${esc(c.error)}</div>` : ""}
         <div class="card-actions">
-          <button class="sm" data-act="test">测试连接</button>
-          <button class="sm" data-act="start">启动</button>
-          <button class="sm" data-act="stop">停止</button>
+          <button data-act="connect">${c.health_ok ? "重新连接" : "连接"}</button>
+          <button class="sm ghost" data-act="test">测试连接</button>
+          <button class="sm ghost" data-act="start">启动</button>
+          <button class="sm ghost" data-act="stop">停止</button>
           <button class="sm ghost" data-act="edit">编辑</button>
           ${c.host_id === "sketchup" ? '<button class="sm ghost" data-act="install-skp">一键安装 SketchUp 扩展</button>' : ""}
           ${c.host_id === "blender" ? '<button class="sm ghost" data-act="install-bl">一键安装 Blender 插件</button>' : ""}
           ${c.host_id === "rhino" ? '<button class="sm ghost" data-act="install-rh">一键安装 Rhino 适配器</button>' : ""}
           <button class="sm danger" data-act="delete">删除</button>
         </div>
+        <div class="connect-steps hidden"></div>
       </div>`;
     }
 
@@ -375,7 +768,10 @@
       const id = card.dataset.id;
       const act = btn.dataset.act;
       try {
-        if (act === "test") {
+        if (act === "connect") {
+          await connectHost(id, btn);
+          return;
+        } else if (act === "test") {
           const r = await api(`/config/hosts/${id}/test`, { method: "POST" });
           alert(`${r.ok ? "连接正常" : "连接失败"}\n${r.message}`);
         } else if (act === "start") {
@@ -489,20 +885,30 @@
           ? hosts.map((h) => {
               const ok = h.status === "ok";
               return `<div class="card">
-                <div class="card-head"><span class="card-title">${h.product} ${h.product_version}</span>${badge(ok, h.status)}</div>
-                <div class="card-meta">${h.host_kind} · ${h.host_id} · ${h.endpoint} · pid=${h.pid}</div>
+                <div class="card-head"><span class="card-title">${esc(h.product)} ${esc(h.product_version)}</span>${badge(ok, h.status)}</div>
+                <div class="card-meta">${esc(h.host_kind)} · ${esc(h.host_id)} · ${esc(h.endpoint)} · pid=${esc(h.pid)}</div>
               </div>`;
             }).join("")
           : '<p class="empty">没有发现宿主。请在目标软件（如 Blender）中启动适配器。</p>';
-        $("tool-list").innerHTML = (data.tools || []).map((t) => `<span class="chip">${t}</span>`).join("") || '<p class="empty">暂无工具</p>';
+        $("tool-list").innerHTML = (data.tools || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("") || '<p class="empty">暂无工具</p>';
         $("error-list").innerHTML = (data.errors || []).length
-          ? data.errors.map((e) => `<div class="card-meta" style="color:#f0a3a3">${e.host_id}: ${e.error_code} ${e.message}</div>`).join("")
+          ? data.errors.map((e) => `<div class="card-meta" style="color:#f0a3a3">${esc(e.host_id)}: ${esc(e.error_code)} ${esc(e.message)}</div>`).join("")
           : '<span class="empty">无</span>';
       } catch (err) {
         $("host-list").innerHTML = '<p class="empty">无法连接 backend</p>';
         $("tool-list").innerHTML = '<p class="empty">无法连接 backend</p>';
       }
     }
+
+    $("btn-clean-registry").addEventListener("click", async () => {
+      try {
+        const r = await api("/config/registry/cleanup", { method: "POST" });
+        alert(r.count ? `已清理 ${r.count} 条陈旧注册：\n${r.removed.join("\n")}` : "没有需要清理的陈旧注册");
+        loadHosts();
+      } catch (err) {
+        alert("清理失败：" + err.message);
+      }
+    });
 
     // ---------- 对话 ----------
     function appendMessage(role, text) {
@@ -543,11 +949,11 @@
           api("/config/mcp/preview"),
           api("/config/mcp/status"),
         ]);
-        const names = preview.servers.map((s) => `<span class="chip">${s.name}</span>`).join("") || "（无）";
+        const names = preview.servers.map((s) => `<span class="chip">${esc(s.name)}</span>`).join("") || "（无）";
         $("mcp-servers").innerHTML =
           `可生成服务器：${names}<br>` +
-          `Codex 配置路径：<code>${status.codex_path}</code><br>` +
-          `Codex 已注册：${status.codex_servers.length ? status.codex_servers.map((s) => `<span class="chip">${s}</span>`).join("") : "无"}`;
+          `Codex 配置路径：<code>${esc(status.codex_path)}</code><br>` +
+          `Codex 已注册：${status.codex_servers.length ? status.codex_servers.map((s) => `<span class="chip">${esc(s)}</span>`).join("") : "无"}`;
         $("mcp-preview").textContent = preview.codex_toml || "（无）";
         $("mcp-status").textContent = "";
       } catch (err) {
@@ -574,42 +980,10 @@
     $("btn-write-claude").addEventListener("click", () => writeMcp("claude"));
 
     // ---------- 任务交付 ----------
-    $("btn-run-task").addEventListener("click", async () => {
-      const btn = $("btn-run-task");
+    $("btn-run-task").addEventListener("click", () => {
       const message = $("at-message").value.trim();
-      $("at-error").textContent = "";
-      if (!message) {
-        $("at-error").textContent = "请填写需求";
-        return;
-      }
-      btn.disabled = true;
-      $("at-result").classList.add("hidden");
-      $("at-final").textContent = "";
-      $("at-error").textContent = "任务运行中（Agent 正在拆解并调用软件工具，请稍候）…";
-      try {
-        const data = await api("/agent/task", {
-          method: "POST",
-          body: JSON.stringify({
-            message,
-            approval: $("at-approval").value,
-            tool_scope: $("at-scope").value,
-            max_iterations: 12,
-          }),
-        });
-        $("at-result").classList.remove("hidden");
-        $("at-error").textContent = "";
-        const tools = (data.executed_tools || [])
-          .map((t) => `<span class="chip">${t.name}${t.ok ? " ✓" : " ✗"}</span>`)
-          .join("") || "（无工具调用）";
-        $("at-tools").innerHTML = `已执行：${tools}`;
-        $("at-final").textContent = data.final_text || "（无回复）";
-        $("at-summary").textContent = `任务 ${data.task_id} · 状态：${data.stopped_reason} · 迭代 ${data.iterations || 0} 次`;
-        loadDelivery();
-      } catch (err) {
-        $("at-error").textContent = "任务失败：" + err.message;
-      } finally {
-        btn.disabled = false;
-      }
+      if (!message) return;
+      runAgentTask(message, $("at-scope").value, $("at-approval").value, $("at-progress"), $("btn-run-task"));
     });
 
     async function loadDelivery() {
@@ -626,20 +1000,127 @@
       }
     }
 
+    function isPreviewable(d) {
+      if ((d.kind || "") === "screenshot") return true;
+      return /\.(png|jpe?g|gif|webp)$/i.test(d.path || "");
+    }
+
+    function isLedger(d) {
+      return (d.kind || "") === "tool-token-ledger" || /\.json$/i.test(d.path || "");
+    }
+
     function renderDeliveryCard(t) {
-      const items = t.deliverables.map((d) =>
-        `<div class="card-meta">· <b>${d.name}</b>（${d.kind}）${d.path ? " → " + d.path : ""}${d.description ? " — " + d.description : ""}</div>`
-      ).join("") || '<div class="card-meta">无交付物</div>';
+      const items = t.deliverables.map((d, idx) => {
+        const actions = [
+          `<button class="sm ghost" data-dact="open" data-task="${esc(t.task_id)}" data-idx="${idx}">打开</button>`,
+          `<button class="sm ghost" data-dact="reveal" data-task="${esc(t.task_id)}" data-idx="${idx}">打开目录</button>`,
+        ];
+        if (isPreviewable(d)) {
+          actions.push(`<button class="sm ghost" data-dact="preview" data-task="${esc(t.task_id)}" data-idx="${idx}">预览</button>`);
+        }
+        if (isLedger(d)) {
+          actions.push(`<button class="sm ghost" data-dact="rollback" data-task="${esc(t.task_id)}" data-idx="${idx}">回滚</button>`);
+        }
+        return `<div class="card-meta">· <b>${esc(d.name)}</b>（${esc(d.kind)}）${d.path ? " → " + esc(d.path) : ""}${d.description ? " — " + esc(d.description) : ""}
+          <span class="d-actions">${actions.join("")}</span>
+          <div class="d-preview hidden" id="dprev-${esc(t.task_id)}-${idx}"></div>
+          <div class="d-rollback hidden" id="drb-${esc(t.task_id)}-${idx}"></div>
+        </div>`;
+      }).join("") || '<div class="card-meta">无交付物</div>';
       const handoff = t.handoff && t.handoff.summary
-        ? `<div class="card-meta" style="color:#8ee6b0">交接：${t.handoff.summary}</div>` +
-          (t.handoff.verification_steps.length ? `<div class="card-meta">验证：${t.handoff.verification_steps.join("；")}</div>` : "") +
-          (t.handoff.next_steps.length ? `<div class="card-meta">下一步：${t.handoff.next_steps.join("；")}</div>` : "")
+        ? `<div class="card-meta" style="color:#8ee6b0">交接：${esc(t.handoff.summary)}</div>` +
+          (t.handoff.verification_steps.length ? `<div class="card-meta">验证：${esc(t.handoff.verification_steps.join("；"))}</div>` : "") +
+          (t.handoff.next_steps.length ? `<div class="card-meta">下一步：${esc(t.handoff.next_steps.join("；"))}</div>` : "")
         : "";
       return `<div class="card">
-        <div class="card-head"><span class="card-title">${t.task_id}</span>${badge(t.status !== "failed", t.status)}</div>
-        <div class="card-meta">目标：${t.user_goal || "-"} · 交付物 ${t.deliverable_count} 个</div>
+        <div class="card-head"><span class="card-title">${esc(t.task_id)}</span>${badge(t.status !== "failed", t.status)}</div>
+        <div class="card-meta">目标：${esc(t.user_goal || "-")} · 交付物 ${t.deliverable_count} 个</div>
         ${items}${handoff}
       </div>`;
+    }
+
+    $("delivery-list").addEventListener("click", async (event) => {
+      const btn = event.target.closest("button[data-dact]");
+      if (!btn) return;
+      const taskId = btn.dataset.task;
+      const idx = btn.dataset.idx;
+      const act = btn.dataset.dact;
+      try {
+        if (act === "open") {
+          await api(`/delivery/tasks/${encodeURIComponent(taskId)}/deliverables/${idx}/open`, { method: "POST" });
+          const old = btn.textContent;
+          btn.textContent = "已打开";
+          setTimeout(() => (btn.textContent = old), 1500);
+        } else if (act === "reveal") {
+          await api(`/delivery/tasks/${encodeURIComponent(taskId)}/deliverables/${idx}/reveal`, { method: "POST" });
+        } else if (act === "preview") {
+          const box = $(`dprev-${taskId}-${idx}`);
+          if (!box.classList.contains("hidden")) {
+            box.classList.add("hidden");
+            return;
+          }
+          box.innerHTML = `<img src="/delivery/tasks/${encodeURIComponent(taskId)}/deliverables/${idx}/file?t=${Date.now()}" alt="预览">`;
+          box.classList.remove("hidden");
+        } else if (act === "rollback") {
+          await renderRollbackPanel(taskId, idx);
+        }
+      } catch (err) {
+        alert("操作失败：" + err.message);
+      }
+    });
+
+    async function renderRollbackPanel(taskId, idx) {
+      const box = $(`drb-${taskId}-${idx}`);
+      if (!box.classList.contains("hidden")) {
+        box.classList.add("hidden");
+        return;
+      }
+      box.classList.remove("hidden");
+      box.innerHTML = "加载回滚令牌…";
+      try {
+        const data = await api(`/delivery/tasks/${encodeURIComponent(taskId)}/deliverables/${idx}/rollback-tokens`);
+        const tokens = data.tokens || [];
+        if (!tokens.length) {
+          box.innerHTML = '<span class="empty">该台账没有可回滚的令牌</span>';
+          return;
+        }
+        box.innerHTML = tokens.map((t) => `
+          <div class="rb-row">
+            <span>${esc(t.name || "-")}</span>
+            <span class="rb-token">${esc(t.token)}</span>
+            <button class="sm danger" data-rbtoken="${esc(t.token)}">回滚</button>
+          </div>`).join("") +
+          `<div class="rb-row"><button class="sm danger" data-rball="1">全部回滚（${tokens.length}）</button><span class="card-meta" data-rbmsg></span></div>`;
+        box.querySelectorAll("button[data-rbtoken]").forEach((b) => {
+          b.addEventListener("click", () => rollbackToken(taskId, idx, b.dataset.rbtoken, box));
+        });
+        const allBtn = box.querySelector("button[data-rball]");
+        if (allBtn) {
+          allBtn.addEventListener("click", async () => {
+            allBtn.disabled = true;
+            for (const t of tokens) {
+              await rollbackToken(taskId, idx, t.token, box);
+            }
+            allBtn.disabled = false;
+          });
+        }
+      } catch (err) {
+        box.innerHTML = `<span class="error-line">${esc(err.message)}</span>`;
+      }
+    }
+
+    async function rollbackToken(taskId, idx, token, box) {
+      const msg = box.querySelector("[data-rbmsg]");
+      try {
+        const r = await api(`/delivery/tasks/${encodeURIComponent(taskId)}/deliverables/${idx}/rollback`, {
+          method: "POST",
+          body: JSON.stringify({ token }),
+        });
+        if (msg) msg.textContent = `已回滚 ${token}（宿主 ${r.host_id}）`;
+      } catch (err) {
+        if (msg) msg.textContent = "回滚失败：" + err.message;
+        else alert("回滚失败：" + err.message);
+      }
     }
 
     $("btn-add-deliverable").addEventListener("click", async () => {
@@ -689,6 +1170,124 @@
       }
     });
 
+    // ---------- 设置：模型配置 ----------
+    let _presets = [];
+    let _modelSnapshot = null;
+
+    async function loadModelSettings() {
+      try {
+        const [presets, snapshot] = await Promise.all([
+          api("/config/model/presets"),
+          api("/config/model"),
+        ]);
+        _presets = presets;
+        _modelSnapshot = snapshot;
+        const select = $("m-provider");
+        select.innerHTML = presets.map((p) =>
+          `<option value="${esc(p.provider)}">${esc(p.display_name)}</option>`).join("");
+        const active = snapshot.active_provider || (presets[0] && presets[0].provider) || "";
+        select.value = active;
+        fillModelForm(active);
+        renderModelList(snapshot);
+      } catch (err) {
+        $("model-error").textContent = "加载模型配置失败：" + err.message;
+      }
+    }
+
+    function fillModelForm(provider) {
+      const preset = _presets.find((p) => p.provider === provider) || {};
+      const saved = (_modelSnapshot.providers || []).find((p) => p.provider === provider);
+      $("m-base-url").value = (saved && saved.api_base_url) || preset.default_base_url || "";
+      $("m-model").value = (saved && saved.model) || preset.default_model || "";
+      $("m-protocol").value = (saved && saved.protocol) || (provider === "anthropic" ? "anthropic_messages" : provider === "openai" ? "openai_responses" : "openai_chat");
+      $("m-enabled").checked = saved ? saved.enabled : true;
+      $("m-api-key").value = "";
+      $("m-api-key").placeholder = saved && saved.api_key_configured
+        ? `已保存（${saved.api_key_mask}），留空保持不变`
+        : (preset.api_key_hint || "填写 API Key");
+      $("model-checks").textContent = preset.description || "";
+    }
+
+    $("m-provider").addEventListener("change", () => fillModelForm($("m-provider").value));
+
+    function renderModelList(snapshot) {
+      const providers = snapshot.providers || [];
+      $("model-list").innerHTML = providers.length ? providers.map((p) => {
+        const active = p.provider === snapshot.active_provider;
+        return `<div class="card"><div class="card-head"><span class="card-title">${esc(p.display_name)}</span>` +
+          (active ? '<span class="badge ok">当前使用</span>' : "") +
+          (p.api_key_configured ? '<span class="badge ok">Key 已配置</span>' : '<span class="badge warn">Key 未配置</span>') +
+          (p.enabled ? "" : '<span class="badge off">已停用</span>') +
+          `</div><div class="card-meta">${esc(p.provider)} · ${esc(p.api_base_url)} · ${esc(p.model)} · ${esc(p.protocol)}</div></div>`;
+      }).join("") : '<p class="empty">尚未配置任何模型服务商</p>';
+    }
+
+    $("btn-model-save").addEventListener("click", async () => {
+      $("model-error").textContent = "";
+      $("model-ok").textContent = "";
+      const provider = $("m-provider").value;
+      const payload = {
+        active_provider: provider,
+        updated_by: "panel",
+        provider_config: {
+          provider,
+          api_base_url: $("m-base-url").value.trim(),
+          model: $("m-model").value.trim(),
+          api_key: $("m-api-key").value.trim() || null,
+          enabled: $("m-enabled").checked,
+          protocol: $("m-protocol").value,
+          capabilities: [],
+        },
+      };
+      try {
+        const snapshot = await api("/config/model", { method: "PUT", body: JSON.stringify(payload) });
+        _modelSnapshot = snapshot;
+        renderModelList(snapshot);
+        fillModelForm(provider);
+        $("model-ok").textContent = "已保存，对话与 Agent 任务将使用该配置。";
+        renderWizard();
+      } catch (err) {
+        $("model-error").textContent = "保存失败：" + err.message;
+      }
+    });
+
+    $("btn-model-test").addEventListener("click", async () => {
+      $("model-error").textContent = "";
+      $("model-ok").textContent = "";
+      try {
+        const r = await api("/config/model/test", {
+          method: "POST",
+          body: JSON.stringify({ provider: $("m-provider").value }),
+        });
+        $("model-checks").innerHTML = (r.checks || []).map((c) =>
+          `<div class="card-meta" style="color:${c.severity === "error" ? "#f0a3a3" : c.severity === "warning" ? "#f5d28e" : "#8ee6b0"}">${esc(c.severity)}: ${esc(c.message)}</div>`).join("");
+        $("model-ok").textContent = r.ok ? "静态校验通过。" : "";
+        if (!r.ok) $("model-error").textContent = "静态校验未通过，请按上方提示修正。";
+      } catch (err) {
+        $("model-error").textContent = "校验失败：" + err.message;
+      }
+    });
+
+    $("btn-model-ping").addEventListener("click", async () => {
+      $("model-error").textContent = "";
+      $("model-ok").textContent = "正在真实调用模型…";
+      try {
+        const r = await api("/config/model/ping", {
+          method: "POST",
+          body: JSON.stringify({ provider: $("m-provider").value }),
+        });
+        if (r.ok) {
+          $("model-ok").textContent = `连通正常${r.reply ? "，模型回复：" + r.reply : ""}`;
+        } else {
+          $("model-ok").textContent = "";
+          $("model-error").textContent = r.message || "模型调用失败";
+        }
+      } catch (err) {
+        $("model-ok").textContent = "";
+        $("model-error").textContent = "连通测试失败：" + err.message;
+      }
+    });
+
     // ---------- 路由（对应桌面侧边栏） ----------
     function route() {
       const section = (location.hash || "#overview").replace("#", "");
@@ -703,6 +1302,7 @@
       if (section === "monitor") loadHosts();
       if (section === "agents") loadMcpPanel();
       if (section === "tasks") loadDelivery();
+      if (section === "settings") loadModelSettings();
     }
 
     document.querySelectorAll("nav.tabs button").forEach((b) => {

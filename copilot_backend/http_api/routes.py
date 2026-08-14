@@ -4,16 +4,21 @@ import hmac
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from pydantic import BaseModel
 
 from cadmcp.tool_registry import get_product_tool, list_product_tools
 from connector_runtime.diagnostics import build_connector_capabilities, build_connector_diagnostics
 from adapter_install.sketchup import install_sketchup_extension, sketchup_extension_status
 from adapter_install.blender import blender_addon_status, install_blender_addon
 from adapter_install.rhino import install_rhino_adapter, rhino_adapter_status
-from agent.host_task import AgentTaskRequest, run_host_task
+from agent.host_task import AgentTaskRequest
+from agent.task_runner import agent_task_runner
+from delivery import actions as delivery_actions
 from delivery.models import DeliverableCreate, DeliveryTaskView, HandoffUpdate
 from delivery.service import delivery_service
+from host_config.connect import HostConnector, cleanup_stale_registrations
+from host_config.detect import autocad_plugin_status, detect_installed_software
 from host_config.models import (
     HostAdapterConfig,
     HostConfigCreate,
@@ -84,16 +89,55 @@ from skills.user_store import skill_draft_store
 router = APIRouter()
 
 
+class AgentTaskConfirmRequest(BaseModel):
+    approve: bool
+
+
 @router.post("/agent/task")
 async def run_agent_task(request: AgentTaskRequest) -> dict:
-    """让 Agent 用宿主工具自动完成一个任务（需求拆解 -> 执行 -> 交付记录）。"""
+    """Start an agent task asynchronously (requirement -> execute -> delivery).
+
+    Returns the task record immediately (status ``running`` or ``no_tools``);
+    the panel polls ``GET /agent/tasks/{task_id}`` for live steps and confirms
+    write operations through ``POST /agent/tasks/{task_id}/confirm``.
+    """
 
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
     try:
-        return await run_host_task(request)
+        return await agent_task_runner.start_task(request)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/agent/tasks")
+def list_agent_tasks(limit: int = 20) -> list[dict]:
+    return agent_task_runner.list(limit=limit)
+
+
+@router.get("/agent/tasks/{task_id}")
+def get_agent_task(task_id: str) -> dict:
+    view = agent_task_runner.get(task_id)
+    if view is None:
+        raise HTTPException(status_code=404, detail=f"agent task not found: {task_id}")
+    return view
+
+
+@router.post("/agent/tasks/{task_id}/confirm")
+async def confirm_agent_task(task_id: str, request: AgentTaskConfirmRequest) -> dict:
+    """Approve or reject the pending write of an annotate-mode task.
+
+    Approve executes the exact pending tool call (dry-run -> ticket -> commit)
+    and continues the loop; reject tells the model the write was denied. The
+    next write stops for confirmation again.
+    """
+
+    try:
+        return await agent_task_runner.confirm_task(task_id, request.approve)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=f"agent task not found: {task_id}") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.get("/ui", response_class=HTMLResponse, include_in_schema=False)
@@ -245,6 +289,43 @@ def rhino_adapter_status_route() -> dict:
     return rhino_adapter_status()
 
 
+# ----- 连接器：快速连接（检测 → 装插件 → 拉桥 → 等注册 → 健康 → 持久化） -----
+
+
+def _adapter_status_map() -> dict:
+    return {
+        "blender": {"installed": any(a.get("installed") for a in blender_addon_status().get("addons", []))},
+        "sketchup": {"installed": bool(sketchup_extension_status().get("installed"))},
+        "rhino": {"installed": bool(rhino_adapter_status().get("installed"))},
+        "autocad": autocad_plugin_status(),
+    }
+
+
+@router.get("/config/detect")
+def detect_software() -> dict:
+    """扫描本机已安装的受支持软件（Blender/SketchUp/Rhino/AutoCAD）。"""
+
+    return {"software": detect_installed_software(adapter_status=_adapter_status_map())}
+
+
+@router.post("/config/hosts/{host_id}/connect")
+def connect_host_config(host_id: str) -> dict:
+    """一键连接：编排完整连接链路，成功后持久化（enabled + auto_start）。"""
+
+    connector = HostConnector(host_config_service)
+    try:
+        return connector.connect(host_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/config/registry/cleanup")
+def registry_cleanup() -> dict:
+    """清理进程已不存在的陈旧宿主注册，让"检查连接状态"反映真实在线情况。"""
+
+    return cleanup_stale_registrations()
+
+
 # ----- Agent 接入（MCP 注册管理） -----
 
 
@@ -329,6 +410,75 @@ def update_handoff(task_id: str, request: HandoffUpdate) -> DeliveryTaskView:
     return delivery_service.set_handoff(task_id, request)
 
 
+# ----- 交付物动作（打开 / 预览 / 打开目录 / 回滚） -----
+
+
+@router.post("/delivery/tasks/{task_id}/deliverables/{index}/open")
+def open_deliverable_route(task_id: str, index: int) -> dict:
+    """Open the deliverable with the OS default program."""
+
+    try:
+        return delivery_actions.open_deliverable(task_id, index)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/delivery/tasks/{task_id}/deliverables/{index}/reveal")
+def reveal_deliverable_route(task_id: str, index: int) -> dict:
+    """Reveal the deliverable in Explorer/Finder."""
+
+    try:
+        return delivery_actions.reveal_deliverable(task_id, index)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/delivery/tasks/{task_id}/deliverables/{index}/file")
+def preview_deliverable_file(task_id: str, index: int) -> FileResponse:
+    """Serve the deliverable for inline preview (screenshots, reports...)."""
+
+    try:
+        info = delivery_actions.preview_info(task_id, index)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return FileResponse(info["path"], media_type=info["content_type"], filename=Path(info["path"]).name)
+
+
+@router.get("/delivery/tasks/{task_id}/deliverables/{index}/rollback-tokens")
+def deliverable_rollback_tokens(task_id: str, index: int) -> dict:
+    """List rollback tokens recorded in a tool-token ledger deliverable."""
+
+    try:
+        tokens = delivery_actions.ledger_deliverable_tokens(task_id, index)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"tokens": tokens, "count": len(tokens)}
+
+
+class DeliverableRollbackRequest(BaseModel):
+    token: str
+
+
+@router.post("/delivery/tasks/{task_id}/deliverables/{index}/rollback")
+def rollback_deliverable_route(task_id: str, index: int, request: DeliverableRollbackRequest) -> dict:
+    """Roll one ledger token back through a registered host (first success wins)."""
+
+    try:
+        return delivery_actions.rollback_deliverable(task_id, index, request.token)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 def require_admin_access(
     admin_token: str | None = Header(default=None, alias="X-AgentBridge-Admin-Token"),
     authorization: str | None = Header(default=None),
@@ -383,6 +533,60 @@ async def admin_delete_model_config(provider: str, _: None = Depends(require_adm
 @router.post("/admin/model-config/test", response_model=AdminModelConfigTestResponse)
 async def admin_test_model_config(request: AdminModelConfigTestRequest, _: None = Depends(require_admin_access)):
     return model_config_service.test_provider_config(request.provider)
+
+
+# ----- 面板本地模型配置（本机回环客户端直接使用，免 admin token / .env） -----
+
+
+@router.get("/config/model/presets", response_model=list[AdminModelProviderPresetResponse])
+def panel_model_presets():
+    return list_model_provider_presets()
+
+
+@router.get("/config/model", response_model=AdminModelConfigResponse)
+def panel_model_config():
+    return get_model_config_snapshot()
+
+
+@router.put("/config/model", response_model=AdminModelConfigResponse)
+def panel_update_model_config(request: AdminModelConfigUpdateRequest):
+    try:
+        return model_config_service.update_provider_config(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete("/config/model/{provider}", response_model=AdminModelConfigResponse)
+def panel_delete_model_config(provider: str):
+    try:
+        return model_config_service.delete_provider_config(provider)
+    except ValueError as exc:
+        raise HTTPException(status_code=404 if "not configured" in str(exc) else 400, detail=str(exc)) from exc
+
+
+@router.post("/config/model/test", response_model=AdminModelConfigTestResponse)
+def panel_test_model_config(request: AdminModelConfigTestRequest):
+    return model_config_service.test_provider_config(request.provider)
+
+
+@router.post("/config/model/ping")
+async def panel_ping_model(request: AdminModelConfigTestRequest):
+    """真实调用一次模型（一条短消息），验证 key/地址/模型名可用。"""
+
+    from gateway.provider_client import call_provider
+
+    chat_request = ChatMessageRequest(
+        message="回复 ok 两个字母即可。",
+        provider=request.provider or None,
+        mode="standard",
+    )
+    try:
+        text = await call_provider(chat_request)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "message": f"模型调用失败：{exc}"}
+    return {"ok": True, "message": "模型连通正常", "reply": (text or "")[:80]}
 
 
 @router.get("/config/snapshot", response_model=ProductConfigSnapshotResponse)

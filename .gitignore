@@ -25,3 +25,10 @@ cadcopilot.config.json
 copilot_backend/.venv/
 copilot_backend/__pycache__/
 copilot_backend/.env
+
+# 本地工程临时脚本 / 调试产物 / 测试图纸数据（不入版本库）
+Tsetfile/
+_debug_*.py
+_diag.py
+_diag_out.txt
+_plan_view.png

@@ -66,6 +66,10 @@ class AgentResult:
     iterations: int = 0
     stopped_reason: str = "completed"
     pending_write: Optional[Dict[str, Any]] = None
+    # Canonical message history after the run. Needed to resume a task that
+    # stopped at ``needs_confirmation`` (the blocked write gets its tool result
+    # appended before the loop continues).
+    history: List[Dict[str, Any]] = field(default_factory=list)
 
 
 class AgentLoop:
@@ -109,6 +113,7 @@ class AgentLoop:
                     executed_tools=executed,
                     iterations=len(steps),
                     stopped_reason="completed",
+                    history=history,
                 )
 
             step = AgentStep(index=index, content=assistant_content, tool_calls=tool_calls)
@@ -184,6 +189,7 @@ class AgentLoop:
                     iterations=len(steps),
                     stopped_reason="needs_confirmation",
                     pending_write=blocked_write,
+                    history=history,
                 )
 
         return AgentResult(
@@ -192,6 +198,7 @@ class AgentLoop:
             executed_tools=executed,
             iterations=len(steps),
             stopped_reason="max_iterations",
+            history=history,
         )
 
     @staticmethod

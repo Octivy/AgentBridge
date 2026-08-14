@@ -18,10 +18,12 @@
   <PropertyGroup>
     <AutoCADVersion Condition="'$(AutoCADVersion)' == ''">2024</AutoCADVersion>
     <AutoCADSeries Condition="'$(AutoCADVersion)' == '2014'">R19.1</AutoCADSeries>
-    <AutoCADSeries Condition="'$(AutoCADVersion)' != '2014'">R24.3</AutoCADSeries>
+    <AutoCADSeries Condition="'$(AutoCADVersion)' == '2016'">R20.1</AutoCADSeries>
+    <AutoCADSeries Condition="'$(AutoCADVersion)' != '2014' and '$(AutoCADVersion)' != '2016'">R24.3</AutoCADSeries>
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2014' and Exists('D:\\Program Files\\Autodesk\\AutoCAD 2014\\acmgd.dll')">D:\\Program Files\\Autodesk\\AutoCAD 2014</AutoCADInstallDir>
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2014'">C:\\Program Files\\Autodesk\\AutoCAD 2014</AutoCADInstallDir>
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2016' and Exists('C:\\Program Files\\Autodesk\\AutoCAD 2016\\acmgd.dll')">C:\\Program Files\\Autodesk\\AutoCAD 2016</AutoCADInstallDir>
+    <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and '$(AutoCADVersion)' == '2016' and Exists('D:\\Program Files\\Autodesk\\AutoCAD 2016\\acmgd.dll')">D:\\Program Files\\Autodesk\\AutoCAD 2016</AutoCADInstallDir>
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == '' and Exists('D:\\Program Files\\Autodesk\\AutoCAD 2024\\acmgd.dll')">D:\\Program Files\\Autodesk\\AutoCAD 2024</AutoCADInstallDir>
     <AutoCADInstallDir Condition="'$(AutoCADInstallDir)' == ''">C:\\Program Files\\Autodesk\\AutoCAD 2024</AutoCADInstallDir>
   </PropertyGroup>
@@ -29,6 +31,13 @@
   <ItemGroup>
     <Compile Remove="AgentBridge.Tests\**\*.cs" />
     <Compile Remove="client\**\*.cs" />
+    <!-- desktop/ is a separate .NET 8 project; keep the SDK globs out of the net48 plugin -->
+    <Compile Remove="desktop\**" />
+    <Page Remove="desktop\**" />
+    <None Remove="desktop\**" />
+    <Resource Remove="desktop\**" />
+    <EmbeddedResource Remove="desktop\**" />
+    <ApplicationDefinition Remove="desktop\**" />
   </ItemGroup>
 
   <ItemGroup>

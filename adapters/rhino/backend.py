@@ -23,6 +23,18 @@ except ImportError:  # allow import outside Rhino
     rs = None
 
 
+def _debug_log(message: str) -> None:
+    try:
+        import io
+        import os
+
+        log_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "rhino-layer-debug.log")
+        with io.open(log_path, "a", encoding="utf-8") as handle:
+            handle.write(str(message) + "\n")
+    except Exception:  # noqa: BLE001
+        pass
+
+
 TOOLS = [
     {
         "tool_name": "rhino_scene_summary",
@@ -30,6 +42,23 @@ TOOLS = [
         "category": "analysis",
         "description": "汇总当前 Rhino 文档的对象数量、图层与文件名。",
         "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
+        "dry_run_supported": False,
+        "side_effect_level": "none",
+        "result_schema": {"type": "object"},
+    },
+    {
+        "tool_name": "rhino_get_objects",
+        "display_name": "查询场景对象",
+        "category": "analysis",
+        "description": "列出当前场景对象（ID、图层、名称、类型、包围盒），可按图层过滤，供 Agent 观察模型后再决策。",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "layer": {"type": "string", "description": "只返回该图层的对象；省略则返回全部图层"},
+                "limit": {"type": "integer", "description": "最多返回多少对象，默认 500"},
+            },
+            "additionalProperties": False,
+        },
         "dry_run_supported": False,
         "side_effect_level": "none",
         "result_schema": {"type": "object"},
@@ -45,6 +74,8 @@ TOOLS = [
                 "name": {"type": "string"},
                 "size": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
                 "location": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+                "layer": {"type": "string"},
+                "layer_color": {"type": "string"},
             },
             "additionalProperties": False,
         },
@@ -52,6 +83,34 @@ TOOLS = [
         "side_effect_level": "high",
         "result_schema": {"type": "object"},
         "rollback_supported": True,
+    },
+    {
+        "tool_name": "rhino_delete_object",
+        "display_name": "删除对象",
+        "category": "modeling",
+        "description": "按对象 ID 删除场景中的对象（Agent 循环的修改步骤）。",
+        "input_schema": {
+            "type": "object",
+            "properties": {"object_id": {"type": "string"}},
+            "additionalProperties": False,
+        },
+        "dry_run_supported": True,
+        "side_effect_level": "high",
+        "result_schema": {"type": "object"},
+    },
+    {
+        "tool_name": "rhino_union_layer",
+        "display_name": "合并图层实体",
+        "category": "modeling",
+        "description": "把指定图层上的所有长方体/曲面做布尔并集，合并为一个整体（消除交接处的内部边线）。",
+        "input_schema": {
+            "type": "object",
+            "properties": {"layer": {"type": "string"}},
+            "additionalProperties": False,
+        },
+        "dry_run_supported": True,
+        "side_effect_level": "high",
+        "result_schema": {"type": "object"},
     },
 ]
 
@@ -95,6 +154,62 @@ def _find_object(doc, guid_str: str):
     return None
 
 
+def _ensure_layer(doc, name: str, color_hex: str = "") -> int:
+    """Find or create a layer; returns its index.  Falls back to 0 on error."""
+    try:
+        index = -1
+        for layer in doc.Layers:
+            try:
+                if layer.Name == name:
+                    index = layer.LayerIndex
+                    break
+            except Exception:  # noqa: BLE001
+                continue
+        if index < 0:
+            try:
+                index = doc.Layers.Add(name)
+            except Exception:  # noqa: BLE001
+                # Rhino 8 的 LayerTable.Add(str) 不可用，用 rhinoscriptsyntax。
+                _debug_log("ensure_layer Add(str) failed, using rs.AddLayer")
+                require_rs()
+                if color_hex:
+                    try:
+                        import System.Drawing
+
+                        value = int(str(color_hex).strip().lstrip("#"), 16)
+                        rs.AddLayer(name, System.Drawing.Color.FromArgb(255, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF))
+                    except Exception:  # noqa: BLE001
+                        rs.AddLayer(name)
+                else:
+                    rs.AddLayer(name)
+                for layer in doc.Layers:
+                    try:
+                        if layer.Name == name:
+                            index = layer.LayerIndex
+                            break
+                    except Exception:  # noqa: BLE001
+                        continue
+        if color_hex and index >= 0:
+            try:
+                import System.Drawing
+
+                value = int(str(color_hex).strip().lstrip("#"), 16)
+                layer = doc.Layers[index]
+                layer.Color = System.Drawing.Color.FromArgb(
+                    255,
+                    (value >> 16) & 0xFF,
+                    (value >> 8) & 0xFF,
+                    value & 0xFF,
+                )
+            except Exception:  # noqa: BLE001
+                pass
+        _debug_log("ensure_layer ok name=%s index=%s" % (name, index))
+        return index
+    except Exception as exc:  # noqa: BLE001
+        _debug_log("ensure_layer EXC name=%s: %r" % (name, exc))
+        return 0
+
+
 def scene_summary() -> Dict[str, Any]:
     doc = _active_doc()
     object_count = _object_count(doc)
@@ -111,6 +226,93 @@ def scene_summary() -> Dict[str, Any]:
         "document": document_name,
         "object_count": object_count,
         "layers": layer_names,
+    }
+
+
+def get_objects(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+    """List objects with id/layer/name/type/bbox so the Agent can observe the scene."""
+    del dry_run
+    layer = str(arguments.get("layer") or "").strip()
+    try:
+        limit = max(1, min(int(arguments.get("limit") or 500), 5000))
+    except Exception:  # noqa: BLE001
+        limit = 500
+    doc = _active_doc()
+
+    layer_index = -1
+    if layer:
+        for existing in doc.Layers:
+            try:
+                if existing.Name == layer:
+                    layer_index = existing.LayerIndex
+                    break
+            except Exception:  # noqa: BLE001
+                continue
+        if layer_index < 0:
+            return {"ok": False, "error_code": "execution_error", "error_message": "layer not found: %s" % layer}
+
+    layer_names = {}
+    for existing in doc.Layers:
+        try:
+            layer_names[existing.LayerIndex] = existing.Name
+        except Exception:  # noqa: BLE001
+            continue
+
+    objects = []
+    total = 0
+    for obj in doc.Objects:
+        try:
+            if layer_index >= 0 and obj.Attributes.LayerIndex != layer_index:
+                continue
+        except Exception:  # noqa: BLE001
+            continue
+        total += 1
+        if len(objects) >= limit:
+            continue
+        entry: Dict[str, Any] = {"id": str(obj.Id)}
+        try:
+            entry["layer"] = layer_names.get(obj.Attributes.LayerIndex, str(obj.Attributes.LayerIndex))
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            if obj.Attributes.Name:
+                entry["name"] = obj.Attributes.Name
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            geometry = obj.Geometry
+            entry["type"] = type(geometry).__name__
+            if hasattr(geometry, "Faces"):
+                try:
+                    entry["faces"] = geometry.Faces.Count
+                except Exception:  # noqa: BLE001
+                    pass
+            try:
+                if geometry.IsSolid:
+                    entry["solid"] = True
+            except Exception:  # noqa: BLE001
+                pass
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            bbox = obj.Geometry.GetBoundingBox(True)
+            entry["bbox"] = [
+                bbox.Min.X, bbox.Min.Y, bbox.Min.Z,
+                bbox.Max.X, bbox.Max.Y, bbox.Max.Z,
+            ]
+        except Exception:  # noqa: BLE001
+            pass
+        objects.append(entry)
+
+    return {
+        "ok": True,
+        "result": {
+            "layer": layer or None,
+            "count": len(objects),
+            "total_matching": total,
+            "truncated": total > len(objects),
+            "objects": objects,
+        },
     }
 
 
@@ -132,6 +334,8 @@ def create_box(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
             "error_message": "size and location must contain 3 numbers",
         }
     name = str(arguments.get("name") or "AgentBridgeBox").strip()
+    layer = str(arguments.get("layer") or "").strip()
+    layer_color = str(arguments.get("layer_color") or "").strip()
     half = [value / 2.0 for value in size]
     corners = [
         (
@@ -158,31 +362,237 @@ def create_box(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
     )
     box = geometry.Box(bbox)
     brep = box.ToBrep()
-    oid = doc.Objects.AddBrep(brep, None)
+    attributes = None
+    if layer or layer_color:
+        try:
+            attributes = Rhino.DocObjects.ObjectAttributes()
+            attributes.LayerIndex = _ensure_layer(doc, layer or "Default", layer_color)
+        except Exception as exc:  # noqa: BLE001
+            _debug_log("create_box attrs EXC: %r" % (exc,))
+            attributes = None
+    oid = doc.Objects.AddBrep(brep, attributes)
     guid = str(oid)
     if not guid or guid == "00000000-0000-0000-0000-000000000000":
         return {"ok": False, "error_code": "execution_error", "error_message": "Rhino failed to create the box"}
     try:
-        rhino_object = doc.Objects[oid]
-        rhino_object.Attributes.Name = name
-        rhino_object.CommitChanges()
-    except Exception:  # noqa: BLE001
-        pass
-    token = f"rhino-box-{name}"
+        rhino_object = doc.Objects.FindId(oid)
+        if rhino_object is not None:
+            attrs = rhino_object.Attributes
+            attrs.Name = name
+            rhino_object.CommitChanges()
+    except Exception as exc:  # noqa: BLE001
+        _debug_log("create_box name (RhinoCommon) EXC: %r" % (exc,))
+        try:
+            require_rs()
+            rs.ObjectName(oid, name)
+        except Exception as exc2:  # noqa: BLE001
+            _debug_log("create_box name (rs) EXC: %r" % (exc2,))
+    # Unique rollback token per object so same-named boxes never collide.
+    token = f"rhino-box-{name}-{guid[:8]}"
     _ROLLBACK_LEDGER[token] = ("box", {"name": name, "guid": guid})
     return {
         "ok": True,
-        "result": {"object_name": name, "object_id": guid, "size": size, "location": location},
+        "result": {
+            "object_name": name,
+            "object_id": guid,
+            "size": size,
+            "location": location,
+            "layer": layer,
+        },
         "dry_run": False,
         "rollback_token": token,
+    }
+
+
+def delete_object(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+    """Delete one object by id (the modify step of the agent loop)."""
+    object_id = str(arguments.get("object_id") or "").strip()
+    if not object_id:
+        return {"ok": False, "error_code": "invalid_arguments", "error_message": "object_id is required"}
+    doc = _active_doc()
+    obj = _find_object(doc, object_id)
+    if obj is None:
+        return {"ok": False, "error_code": "not_found", "error_message": "object not found: %s" % object_id}
+    if dry_run:
+        return {"ok": True, "result": {"object_id": object_id, "would_delete": True}, "dry_run": True}
+    try:
+        doc.Objects.Delete(obj.Id, True)
+    except Exception as exc:  # noqa: BLE001
+        _debug_log("delete_object RhinoCommon EXC: %r" % (exc,))
+    if _find_object(doc, object_id) is not None:
+        try:
+            require_rs()
+            rs.DeleteObject(object_id)
+        except Exception as exc:  # noqa: BLE001
+            _debug_log("delete_object rs EXC: %r" % (exc,))
+    deleted = _find_object(doc, object_id) is None
+    return {
+        "ok": deleted,
+        "result": {"object_id": object_id, "deleted": deleted},
+        "error_message": None if deleted else "delete failed",
+    }
+
+
+def union_layer(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+    """Boolean-union all Breps on a layer into a single solid."""
+    layer = str(arguments.get("layer") or "").strip()
+    if not layer:
+        return {"ok": False, "error_code": "invalid_arguments", "error_message": "layer is required"}
+    doc = _active_doc()
+    layer_index = -1
+    for existing in doc.Layers:
+        try:
+            if existing.Name == layer:
+                layer_index = existing.LayerIndex
+                break
+        except Exception:  # noqa: BLE001
+            continue
+    if layer_index < 0:
+        return {"ok": False, "error_code": "execution_error", "error_message": "layer not found: %s" % layer}
+
+    breps = []
+    object_ids = []
+    for obj in doc.Objects:
+        try:
+            if obj.Attributes.LayerIndex != layer_index:
+                continue
+        except Exception:  # noqa: BLE001
+            continue
+        try:
+            geometry = obj.Geometry
+        except Exception:  # noqa: BLE001
+            geometry = None
+        if geometry is None or not isinstance(geometry, Rhino.Geometry.Brep):
+            continue
+        breps.append(geometry)
+        object_ids.append(obj.Id)
+
+    if not breps:
+        return {"ok": True, "result": {"layer": layer, "before": 0, "after": 0, "unioned": False}}
+    if dry_run:
+        return {"ok": True, "result": {"layer": layer, "before": len(breps), "dry_run": True}}
+
+    _debug_log("union_layer start layer=%s breps=%d" % (layer, len(breps)))
+
+    def add_results(result_breps):
+        attributes = Rhino.DocObjects.ObjectAttributes()
+        attributes.LayerIndex = layer_index
+        new_ids = []
+        for brep in result_breps:
+            try:
+                new_oid = doc.Objects.AddBrep(brep, attributes)
+                new_ids.append(str(new_oid))
+            except Exception:  # noqa: BLE001
+                continue
+        return new_ids
+
+    def chunked_union(chunk_breps, tolerance, chunk_size=25, max_rounds=10):
+        """Boolean-union many breps in small batches.
+
+        A single ``CreateBooleanUnion`` over hundreds of boxes frequently
+        returns ``None``; merging in chunks and repeating until no further
+        reduction is much more robust.  Chunks that fail are kept untouched.
+        """
+        import System
+
+        current = list(chunk_breps)
+        rounds = 0
+        while len(current) > 1 and rounds < max_rounds:
+            rounds += 1
+            count_before = len(current)
+            next_round = []
+            progress = False
+            for start in range(0, len(current), chunk_size):
+                chunk = current[start : start + chunk_size]
+                if len(chunk) == 1:
+                    next_round.append(chunk[0])
+                    continue
+                try:
+                    brep_array = System.Array[Rhino.Geometry.Brep](chunk)
+                    results = Rhino.Geometry.Brep.CreateBooleanUnion(brep_array, tolerance)
+                except Exception as exc:  # noqa: BLE001
+                    _debug_log("chunk union EXC: %r" % (exc,))
+                    results = None
+                if results:
+                    results = list(results)
+                    if len(results) < len(chunk):
+                        next_round.extend(results)
+                        progress = True
+                    else:
+                        next_round.extend(chunk)
+                else:
+                    next_round.extend(chunk)
+            current = next_round
+            if not progress:
+                break
+            _debug_log("union round %d: %d -> %d" % (rounds, count_before, len(current)))
+        return current
+
+    # Strategy 1: RhinoCommon, batched so hundreds of boxes merge reliably.
+    new_ids = []
+    try:
+        merged = chunked_union(breps, 0.001)
+        if len(merged) < len(breps):
+            new_ids = add_results(merged)
+            _debug_log("union chunked added %d" % len(new_ids))
+    except Exception as exc:  # noqa: BLE001
+        _debug_log("union chunked EXC: %r" % (exc,))
+        new_ids = []
+    # Strategy 2: rhinoscriptsyntax BooleanUnion (deletes inputs itself).
+    if not new_ids:
+        _debug_log("union fallback to rs.BooleanUnion")
+        try:
+            require_rs()
+            guids = [str(oid) for oid in object_ids]
+            result_guids = rs.BooleanUnion(guids)
+            _debug_log("rs.BooleanUnion -> %r" % (result_guids,))
+            if result_guids:
+                new_ids = [str(guid) for guid in result_guids]
+        except Exception as exc:  # noqa: BLE001
+            _debug_log("rs.BooleanUnion EXC: %r" % (exc,))
+            new_ids = []
+
+    if not new_ids:
+        return {
+            "ok": False,
+            "error_code": "execution_error",
+            "error_message": "union failed; originals untouched",
+        }
+
+    # Delete originals only when a union path already replaced them.
+    # Replace originals with the union result (union created new objects and did
+    # not reuse input ids; rs fallback may already have deleted the inputs, in
+    # which case Delete is a harmless no-op).
+    if new_ids:
+        for oid in object_ids:
+            try:
+                if str(oid) not in new_ids:
+                    doc.Objects.Delete(oid, True)
+            except Exception:  # noqa: BLE001
+                pass
+    return {
+        "ok": True,
+        "result": {
+            "layer": layer,
+            "before": len(breps),
+            "after": len(new_ids),
+            "unioned": len(new_ids) < len(breps),
+            "object_ids": new_ids,
+        },
     }
 
 
 def runner(tool_name: str, arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
     if tool_name == "rhino_scene_summary":
         return {"ok": True, "result": scene_summary(), "dry_run": False}
+    if tool_name == "rhino_get_objects":
+        return get_objects(arguments, dry_run)
     if tool_name == "rhino_create_box":
         return create_box(arguments, dry_run)
+    if tool_name == "rhino_delete_object":
+        return delete_object(arguments, dry_run)
+    if tool_name == "rhino_union_layer":
+        return union_layer(arguments, dry_run)
     return {"ok": False, "error_code": "unknown_tool", "error_message": f"unknown tool: {tool_name}"}
 
 
@@ -246,4 +656,15 @@ def rollback(rollback_token: str) -> Dict[str, Any]:
     }
 
 
-__all__ = ["TOOLS", "create_box", "require_rs", "rollback", "runner", "scene_summary", "snapshot"]
+__all__ = [
+    "TOOLS",
+    "create_box",
+    "delete_object",
+    "get_objects",
+    "require_rs",
+    "rollback",
+    "runner",
+    "scene_summary",
+    "snapshot",
+    "union_layer",
+]
