@@ -75,26 +75,32 @@ def install_sketchup_extension(
             "sketchup_versions": [],
             "message": "未检测到 SketchUp（%APPDATA%\\SketchUp\\SketchUp *）",
         }
-    rbz = build_sketchup_rbz(repo_root)
+    source = (repo_root or _repo_root()) / "adapters" / "sketchup"
     installed: List[str] = []
     for version in versions:
+        # 主路径（已实机验证）：把最新宿主放进 Plugins 目录，SketchUp 启动自动加载，
+        # 不需要 Extension Manager 操作。
+        base = root or sketchup_appdata_root()
+        plugins_dir = base / f"SketchUp {version}" / "SketchUp" / "Plugins"
+        plugins_dir.mkdir(parents=True, exist_ok=True)
+        for name in ("cadcopilot_extension.rb", "cadcopilot_host.rb"):
+            temp = plugins_dir / (name + ".tmp")
+            temp.write_bytes((source / name).read_bytes())
+            os.replace(temp, plugins_dir / name)
+            installed.append(str(plugins_dir / name))
+        # 同时保留 .rbz 到 Extensions（正式扩展形态，可选）
         directory = extensions_dir(version, root)
         directory.mkdir(parents=True, exist_ok=True)
         target = directory / EXTENSION_NAME
         temp = target.with_suffix(".tmp")
-        temp.write_bytes(rbz)
+        temp.write_bytes(build_sketchup_rbz(repo_root))
         os.replace(temp, target)
         installed.append(str(target))
-    removed = _remove_stale_loose_copies(root)
-    message = "已安装到 SketchUp，请重启 SketchUp 生效"
-    if removed:
-        message += f"；同时清理了 {len(removed)} 个旧版裸拷贝（旧文件会导致宿主崩溃）"
     return {
         "ok": True,
         "installed": installed,
-        "removed_stale": removed,
         "sketchup_versions": versions,
-        "message": message,
+        "message": "已安装到 SketchUp Plugins（启动自动加载，无需 Extension Manager），请重启 SketchUp 后测试连接。",
     }
 
 

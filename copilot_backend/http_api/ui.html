@@ -161,15 +161,6 @@
       <div class="soft-grid" id="soft-grid">加载中…</div>
     </section>
     <section>
-      <h2>连接操作流程（各软件按步骤执行）</h2>
-      <div class="card-meta" id="connect-guide">
-        <p>· <b>Blender</b>：打开 Blender → 点“一键安装 Blender 插件” → 重启 Blender → 点“连接”→“测试连接”。</p>
-        <p>· <b>SketchUp</b>：点“一键安装 SketchUp 扩展” → 重启 SketchUp → 菜单 Window → Extension Manager → 确认勾选 <b>AgentBridge Host</b> → 重启 SketchUp → 点“测试连接”。</p>
-        <p>· <b>Rhino</b>：点“一键安装 Rhino 适配器” → 打开 Rhino → <b>命令栏</b>输入 <code>_-RunPythonScript</code> 回车，选择 <code>%APPDATA%\McNeel\Rhinoceros\8.0\scripts\AgentBridgeHost_startup.py</code>（<b>不要用 RhinoCode 编辑器运行</b>）→ 点“测试连接”。</p>
-        <p>· <b>AutoCAD</b>：构建插件包并运行 <code>Install-AgentBridge.ps1</code> → 启动 AutoCAD → 点“测试连接”。</p>
-      </div>
-    </section>
-    <section>
       <h2>软件（Host 适配器）</h2>
       <div id="config-list">加载中…</div>
     </section>
@@ -379,6 +370,13 @@
     }
 
     // ---------- 软件配置 ----------
+    const _SOFT_GUIDES = {
+      blender: "打开 Blender → 点“一键安装 Blender 插件” → 重启 Blender → 点“连接”→“测试连接”。",
+      sketchup: "点“一键安装 SketchUp 扩展”（装进 Plugins 目录） → 重启 SketchUp（启动自动加载，无需 Extension Manager） → 点“测试连接”。",
+      rhino: "点“一键安装 Rhino 适配器” → 打开 Rhino → 命令栏输入 _-RunPythonScript 并选择 %APPDATA%\\McNeel\\Rhinoceros\\8.0\\scripts\\AgentBridgeHost_startup.py（不要用 RhinoCode 编辑器） → 点“测试连接”。",
+      autocad: "先构建插件包并运行 Install-AgentBridge.ps1（外部安装，随 AutoCAD 启动自动加载） → 启动 AutoCAD → 点“测试连接”。",
+    };
+
     async function loadConfigs() {
       $("config-list").textContent = "加载中…";
       try {
@@ -406,6 +404,7 @@
         </div>
         <div class="card-meta">产品：${esc(c.product || "-")} · 版本：${esc(c.product_version || "-")} · 端点：${esc(c.endpoint || "-")}</div>
         ${c.error ? `<div class="card-meta" style="color:#f0a3a3">${esc(c.error)}</div>` : ""}
+        ${_SOFT_GUIDES[c.host_kind] ? `<div class="card-meta" style="margin-top:6px"><b>操作流程：</b>${esc(_SOFT_GUIDES[c.host_kind])}</div>` : ""}
         <div class="card-actions">
           <button data-act="connect">${c.health_ok ? "重新连接" : "连接"}</button>
           <button class="sm ghost" data-act="test">测试连接</button>
