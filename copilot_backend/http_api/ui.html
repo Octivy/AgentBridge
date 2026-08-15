@@ -148,6 +148,15 @@
       <h2>运行总览</h2>
       <div id="overview-body">加载中…</div>
     </section>
+
+    <section>
+      <h2 style="display:flex;justify-content:space-between;align-items:center">
+        <span>Agent 接入状态</span>
+        <button type="button" class="sm ghost" id="btn-agent-test">测试 Agent 接入</button>
+      </h2>
+      <div class="card-meta" style="margin-bottom:10px">验证 Agent → AgentBridge → 软件的完整链路：MCP 服务器握手 + 宿主工具 + 一次真实只读调用（约 20 秒）</div>
+      <div id="agent-test-result" class="empty">尚未测试</div>
+    </section>
   </main>
 
   <!-- 软件配置 -->
@@ -429,6 +438,32 @@
       }
     });
 
+    // ---------- Agent 接入自检 ----------
+    let _agentTestRunning = false;
+    async function loadAgentTest() {
+      if (_agentTestRunning) return;
+      _agentTestRunning = true;
+      const box = $("agent-test-result");
+      box.innerHTML = '<div class="cs run">测试中…（MCP 握手 + 只读探测，约 20 秒）</div>';
+      try {
+        const data = await api("/config/agent/test");
+        const rows = (data.mcp_servers || []).map((s) =>
+          `<div class="cs ${s.ok ? "ok" : "fail"}">MCP 服务器 <b>${esc(s.name)}</b>：${s.ok ? `握手成功，${s.tools} 个工具` : esc(s.error || "失败")}</div>`
+        ).join("");
+        const live = data.live_read
+          ? `<div class="cs ${data.live_read.ok ? "ok" : "fail"}">端到端只读调用 <b>${esc(data.live_read.tool)}</b>：${data.live_read.ok ? "成功" : esc(data.live_read.error)}</div>`
+          : '<div class="cs fail">端到端只读调用：无可用只读工具（宿主不在线？）</div>';
+        box.innerHTML =
+          rows + live +
+          `<div class="cs ${data.ok ? "ok" : "fail"}"><b>${esc(data.message)}</b> · 宿主 ${data.hosts.hosts} 个 · 工具 ${data.hosts.tools} 个</div>`;
+      } catch (err) {
+        box.innerHTML = `<div class="cs fail">测试失败：${esc(err.message)}</div>`;
+      } finally {
+        _agentTestRunning = false;
+      }
+    }
+    $("btn-agent-test").addEventListener("click", loadAgentTest);
+
     // ---------- 连接监控 ----------
     async function loadHosts() {
       $("host-list").textContent = "加载中…";
@@ -549,7 +584,7 @@
       document.querySelectorAll("nav.tabs button").forEach((b) => {
         b.classList.toggle("active", b.dataset.section === section);
       });
-      if (section === "overview") loadOverview();
+      if (section === "overview") { loadOverview(); loadAgentTest(); }
       if (section === "software") { loadConfigs(); loadSoftwareStatus(); startSoftAutoRefresh(); } else { stopSoftAutoRefresh(); }
       if (section === "monitor") { loadHosts(); loadHeal(); }
       if (section === "agents") loadMcpPanel();

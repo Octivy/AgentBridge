@@ -135,6 +135,46 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/config/snapshot").status_code, 200)
         self.assertEqual(self.client.get("/config/validate").status_code, 200)
 
+    def test_agent_access_test_reports_mcp_hosts_and_live_read(self):
+        fake_entries = [Mock(name="hostmcp", command="py", args=["-m", "hostmcp"], cwd=None)]
+        probes = [{"name": "hostmcp", "ok": True, "tools": 22, "error": None}]
+        executor = Mock()
+        executor.tool_names.return_value = ["autocad_get_drawing_snapshot", "autocad_draw_line"]
+        executor.hosts.return_value = [{"host_id": "autocad"}]
+        executor.errors.return_value = []
+        executor.execute_tool_sync.return_value = {"ok": True, "error_message": ""}
+        with (
+            patch("http_api.routes.build_mcp_servers", Mock(return_value=fake_entries)),
+            patch("http_api.routes._probe_mcp_server", AsyncMock(side_effect=probes)) as probe,
+            patch("host_mcp.runtime.HostMcpExecutor", Mock(return_value=executor)),
+        ):
+            response = self.client.get("/config/agent/test")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["mcp_servers"], probes)
+        self.assertEqual(body["hosts"]["tools"], 2)
+        self.assertEqual(body["live_read"]["tool"], "autocad_get_drawing_snapshot")
+        probe.assert_awaited_once()
+
+    def test_agent_access_test_reports_failed_probe(self):
+        fake_entries = [Mock(name="hostmcp", command="py", args=[], cwd=None)]
+        probes = [{"name": "hostmcp", "ok": False, "tools": 0, "error": "TimeoutError: boom"}]
+        executor = Mock()
+        executor.tool_names.return_value = []
+        executor.hosts.return_value = []
+        executor.errors.return_value = []
+        with (
+            patch("http_api.routes.build_mcp_servers", Mock(return_value=fake_entries)),
+            patch("http_api.routes._probe_mcp_server", AsyncMock(side_effect=probes)),
+            patch("host_mcp.runtime.HostMcpExecutor", Mock(return_value=executor)),
+        ):
+            response = self.client.get("/config/agent/test")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertFalse(body["ok"])
+        self.assertIsNone(body["live_read"])
+
 
 if __name__ == "__main__":
     unittest.main()

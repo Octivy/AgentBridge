@@ -1,5 +1,6 @@
 """HTTP surface for the CAD/MCP MVP."""
 
+import asyncio
 import hmac
 from pathlib import Path
 
@@ -483,6 +484,72 @@ def mcp_config_status() -> McpStatusResponse:
         codex_servers=codex_servers,
         generated_servers=generated,
     )
+
+
+# ----- Agent 接入自检：MCP 握手 + 宿主在线 + 端到端只读探测 -----
+
+
+async def _probe_mcp_server(spec: dict) -> dict:
+    """按 MCP 客户端的方式启动一个 stdio 服务器并握手列工具。"""
+
+    from mcp import ClientSession, StdioServerParameters  # noqa: PLC0415 - 仅自检时加载
+    from mcp.client.stdio import stdio_client
+
+    params = StdioServerParameters(
+        command=spec["command"],
+        args=list(spec.get("args") or []),
+        cwd=spec.get("cwd"),
+    )
+    try:
+        async with stdio_client(params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await asyncio.wait_for(session.initialize(), timeout=25)
+                tools = await asyncio.wait_for(session.list_tools(), timeout=25)
+                return {"name": spec["name"], "ok": True, "tools": len(tools.tools), "error": None}
+    except Exception as exc:  # noqa: BLE001 - 探针失败要在面板上展示原因
+        return {"name": spec["name"], "ok": False, "tools": 0, "error": f"{type(exc).__name__}: {exc}"}
+
+
+@router.get("/config/agent/test")
+async def agent_access_test() -> dict:
+    """Agent 接入自检：MCP 服务器握手 + 宿主/工具统计 + 一次真实只读调用。"""
+
+    specs = [
+        {
+            "name": entry.name,
+            "command": entry.command,
+            "args": list(entry.args),
+            "cwd": entry.cwd,
+        }
+        for entry in build_mcp_servers()
+    ]
+    mcp_results = await asyncio.gather(*(_probe_mcp_server(spec) for spec in specs))
+
+    from host_mcp.runtime import HostMcpExecutor  # noqa: PLC0415
+
+    executor = HostMcpExecutor()
+    tool_names = executor.tool_names()
+    host_summary = {"hosts": len(executor.hosts()), "tools": len(tool_names), "errors": executor.errors()}
+
+    read_candidates = [name for name in tool_names if "_summary" in name or "snapshot" in name]
+    live = None
+    if read_candidates:
+        target = read_candidates[0]
+        try:
+            result = executor.execute_tool_sync(target, {})
+            live = {"tool": target, "ok": bool(result.get("ok")), "error": result.get("error_message")}
+        except Exception as exc:  # noqa: BLE001
+            live = {"tool": target, "ok": False, "error": f"{type(exc).__name__}: {exc}"}
+
+    mcp_ok = bool(mcp_results) and all(result["ok"] for result in mcp_results)
+    ok = bool(mcp_ok and live and live["ok"])
+    return {
+        "ok": ok,
+        "mcp_servers": mcp_results,
+        "hosts": host_summary,
+        "live_read": live,
+        "message": "Agent 已可接入并直接驱动软件" if ok else "存在未通过的检查项，见下方详情",
+    }
 
 
 # ----- 任务交付（交付物 + 交接总结） -----
