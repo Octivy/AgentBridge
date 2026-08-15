@@ -21,6 +21,7 @@ from host_config.models import (
     HostConfigStatus,
     HostConfigUpdate,
     HostTestResult,
+    LaunchSpec,
 )
 from host_config.store import HostConfigStore
 from host_runtime.client import HostClient
@@ -107,6 +108,9 @@ class HostConfigService:
             existing = self._processes.get(host_id)
             if existing is not None and existing.poll() is None:
                 return self.status(host_id)
+            # backend 重启会让上一轮拉起的桥进程变成孤儿；按启动脚本去重，
+            # 防止反复累积（累积过多会拖垮宿主机线程资源，甚至触发 R6016）。
+            self._dedupe_bridge_processes(launch)
             env = os.environ.copy()
             env.update(launch.env)
             cwd = launch.cwd or str(_repo_root())
@@ -127,6 +131,32 @@ class HostConfigService:
         if self._events is not None:
             self._events.record(host_id, BRIDGE_STARTED, "桥进程已启动")
         return self.status(host_id)
+
+    @staticmethod
+    def _dedupe_bridge_processes(launch: LaunchSpec) -> None:
+        """Kill older processes running the same bridge script (start-hostmcp/
+        start-cadmcp), so repeated connects never accumulate orphan bridges."""
+
+        script_name = ""
+        for part in (launch.args or []):
+            if part.lower().endswith(".ps1"):
+                script_name = Path(part).name
+                break
+        if not script_name:
+            return
+        try:
+            command = (
+                "Get-CimInstance Win32_Process | Where-Object { "
+                "$_.CommandLine -like ('*' + $args[0] + '*') } | "
+                "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+            )
+            subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command", command, "--", script_name],
+                capture_output=True,
+                timeout=30,
+            )
+        except Exception:  # noqa: BLE001 - dedupe is best-effort
+            return
 
     def stop(self, host_id: str) -> HostConfigStatus:
         with self._lock:
