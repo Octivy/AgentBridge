@@ -27,7 +27,11 @@ class SketchupInstallTests(unittest.TestCase):
     def test_install_and_status(self) -> None:
         result = install_sketchup_extension(root=self.root, repo_root=Path(__file__).resolve().parents[2])
         self.assertTrue(result["ok"])
-        self.assertEqual(len(result["installed"]), 2)
+        # 每个版本：Plugins 下两个 .rb（主路径，启动自动加载）+ Extensions 下 1 个 .rbz
+        self.assertEqual(len(result["installed"]), 6)
+        plugins = self.root / "SketchUp 2025" / "SketchUp" / "Plugins"
+        self.assertTrue((plugins / "cadcopilot_host.rb").exists())
+        self.assertTrue((plugins / "cadcopilot_extension.rb").exists())
         target = self.root / "SketchUp 2025" / "SketchUp" / "Extensions" / EXTENSION_NAME
         self.assertTrue(target.exists())
         with zipfile.ZipFile(target) as archive:

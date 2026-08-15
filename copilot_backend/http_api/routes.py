@@ -291,6 +291,18 @@ def rhino_adapter_status_route() -> dict:
     return rhino_adapter_status()
 
 
+@router.post("/config/hosts/autocad/install-plugin")
+def install_autocad_plugin_route() -> dict:
+    """一键构建并安装 AutoCAD 插件包（bundle → %APPDATA%\\Autodesk\\ApplicationPlugins）。"""
+
+    try:
+        from host_config.autocad_install import build_and_install_autocad_plugin
+
+        return build_and_install_autocad_plugin()
+    except Exception as exc:  # noqa: BLE001 - surfaced to the panel as the real error
+        raise HTTPException(status_code=500, detail=f"AutoCAD 插件安装失败：{exc}") from exc
+
+
 # ----- 连接器：快速连接（检测 → 装插件 → 拉桥 → 等注册 → 健康 → 持久化） -----
 
 
