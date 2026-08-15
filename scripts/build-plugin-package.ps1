@@ -45,8 +45,9 @@ $buildOutput = Join-Path $root "bin\$Configuration\net48"
 $pluginDll = Join-Path $buildOutput "AgentBridge.dll"
 $jsonDll = Join-Path $buildOutput "Newtonsoft.Json.dll"
 $prompt = Join-Path $buildOutput "Resources\system_prompt.txt"
+$autocadTools = Join-Path $buildOutput "Resources\autocad_tools.json"
 
-foreach ($required in @($packageXml, $pluginDll, $jsonDll, $prompt)) {
+foreach ($required in @($packageXml, $pluginDll, $jsonDll, $prompt, $autocadTools)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Required release file is missing: $required"
     }
@@ -77,6 +78,7 @@ $manifest.Save((Join-Path $bundleRoot "PackageContents.xml"))
 Copy-Item -LiteralPath $pluginDll -Destination (Join-Path $bundleContents "AgentBridge.dll")
 Copy-Item -LiteralPath $jsonDll -Destination (Join-Path $bundleContents "Newtonsoft.Json.dll")
 Copy-Item -LiteralPath $prompt -Destination (Join-Path $bundleResources "system_prompt.txt")
+Copy-Item -LiteralPath $autocadTools -Destination (Join-Path $bundleResources "autocad_tools.json")
 Copy-Item -LiteralPath (Join-Path $root "agentbridge.config.template.json") -Destination (Join-Path $bundleContents "agentbridge.config.json")
 
 foreach ($asset in @("Install-AgentBridge.ps1", "Uninstall-AgentBridge.ps1")) {
