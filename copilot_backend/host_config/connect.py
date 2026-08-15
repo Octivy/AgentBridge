@@ -276,9 +276,10 @@ class HostConnector:
                 launched = False
         kind_hints = {
             "rhino": (
-                "打开 Rhino 后，在命令栏运行 _-RunPythonScript 并选择"
-                " %APPDATA%\\McNeel\\Rhinoceros\\8.0\\scripts\\AgentBridgeHost_startup.py，"
-                "完成注册后回来点“重新连接”或“测试连接”。"
+                "打开 Rhino 后，在【命令栏】输入 _-RunPythonScript 并选择"
+                " %APPDATA%\\McNeel\\Rhinoceros\\8.0\\scripts\\AgentBridgeHost_startup.py"
+                "（注意：不要用 RhinoCode 编辑器运行，编辑器进程退出后宿主会失效）；"
+                "注册成功后回来点“测试连接”。"
             ),
             "autocad": (
                 "AutoCAD 插件需先从发布包安装（解压后运行 Install-AgentBridge.ps1），"

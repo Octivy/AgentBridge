@@ -10,6 +10,7 @@ means "not detected".
 from __future__ import annotations
 
 import os
+import subprocess
 import winreg
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -190,34 +191,26 @@ _EXECUTABLE_KINDS = {
 
 
 def _running_process_names() -> set:
-    """Enumerate running process image names via Windows API (no pipes)."""
+    """Enumerate running process image names via tasklist (reliable everywhere).
 
-    names = set()
+    ctypes/psapi 的 QueryFullProcessImageNameW 在部分 Windows 版本上缺失；
+    tasklist 输出解析在所有实测环境（含受限沙箱）都可用。
+    """
+
     try:
-        import ctypes
-        from ctypes import wintypes
-
-        kernel32 = ctypes.windll.kernel32
-        psapi = ctypes.windll.psapi
-        process_ids = (wintypes.DWORD * 4096)()
-        needed = wintypes.DWORD()
-        if not kernel32.K32EnumProcesses(ctypes.byref(process_ids), ctypes.sizeof(process_ids), ctypes.byref(needed)):
-            return names
-        count = needed.value // ctypes.sizeof(wintypes.DWORD)
-        for index in range(count):
-            pid = process_ids[index]
-            handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
-            if not handle:
-                continue
-            try:
-                buffer = ctypes.create_unicode_buffer(1024)
-                size = wintypes.DWORD(1024)
-                if psapi.QueryFullProcessImageNameW(handle, 0, buffer, ctypes.byref(size)):
-                    names.add(buffer.value.rsplit("\\", 1)[-1].lower())
-            finally:
-                kernel32.CloseHandle(handle)
+        output = subprocess.run(
+            ["tasklist", "/FO", "CSV", "/NH"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        ).stdout or ""
     except Exception:  # noqa: BLE001 - status display must never crash
         return set()
+    names = set()
+    for line in output.splitlines():
+        parts = line.split('","')
+        if parts:
+            names.add(parts[0].strip('"').lower())
     return names
 
 

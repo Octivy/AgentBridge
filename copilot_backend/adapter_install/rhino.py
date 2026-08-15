@@ -49,6 +49,18 @@ def _log(message):
 
 
 _log("AgentBridge Rhino startup running")
+_py_pid = str(os.getpid())
+_rhino_pid = None
+try:
+    import System.Diagnostics as _diag
+    _rhino_pid = str(_diag.Process.GetCurrentProcess().Id)
+except Exception:
+    pass
+_log("pids: rhino=%s python=%s" % (_rhino_pid, _py_pid))
+if _rhino_pid and _py_pid != _rhino_pid:
+    _log("WARNING: script runs in a SEPARATE process (RhinoCode editor?). "
+         "The host thread dies when this process exits. Run it from Rhino's "
+         "command bar instead: _-RunPythonScript <path to this file>")
 try:
     if _SCRIPTS_DIR not in sys.path:
         sys.path.insert(0, _SCRIPTS_DIR)
@@ -58,12 +70,7 @@ try:
     # registration for THIS process exists but the endpoint refuses connections
     # (e.g. the adapter thread died), remove it and start fresh.
     _alive = False
-    _pid = None
-    try:
-        import System.Diagnostics as _diag
-        _pid = str(_diag.Process.GetCurrentProcess().Id)
-    except Exception:
-        _pid = None
+    _pid = _rhino_pid
     if os.path.isdir(_REGISTRY_DIR):
         for _name in os.listdir(_REGISTRY_DIR):
             if not _name.startswith("rhino-main-"):
