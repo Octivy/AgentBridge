@@ -36,6 +36,18 @@ namespace AgentBridge.Core
         private static string _token = string.Empty;
         private static bool _started;
 
+        /// <summary>Whether the bridge is currently listening (starts lazily on first command).</summary>
+        public static bool IsRunning
+        {
+            get
+            {
+                lock (SyncRoot)
+                {
+                    return _started;
+                }
+            }
+        }
+
         public static void Start()
         {
             lock (SyncRoot)

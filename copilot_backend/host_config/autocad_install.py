@@ -41,6 +41,8 @@ def build_and_install_autocad_plugin(autocad_version: str = "2016") -> Dict[str,
         cwd=str(root),
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=900,
     )
     if completed.returncode != 0:

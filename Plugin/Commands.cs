@@ -16,9 +16,21 @@ namespace AgentBridge.Plugin
         public void TestCopilot()
         {
             Document document = Application.DocumentManager.MdiActiveDocument;
-            if (document != null)
+            if (document == null)
             {
-                document.Editor.WriteMessage("\n[AgentBridge] Plugin and local MCP bridge are loaded.");
+                return;
+            }
+            // 惰性拉起本地桥：首次运行本命令时启动监听并写入宿主注册。
+            LocalToolBridge.Start();
+            if (LocalToolBridge.IsRunning)
+            {
+                document.Editor.WriteMessage(
+                    "\n[AgentBridge] Plugin loaded; local bridge is running on 127.0.0.1:8765.");
+            }
+            else
+            {
+                document.Editor.WriteMessage(
+                    "\n[AgentBridge] Plugin loaded, but the local bridge failed to start (see %LOCALAPPDATA%\\AgentBridge logs).");
             }
         }
 
@@ -26,6 +38,7 @@ namespace AgentBridge.Plugin
         public void OpenChat()
         {
             Document document = Application.DocumentManager.MdiActiveDocument;
+            LocalToolBridge.Start();
             try
             {
                 CopilotPalette.Show();
