@@ -481,7 +481,10 @@ namespace AgentBridge.Core
             };
             try
             {
-                string manifestPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "autocad_tools.json");
+                // bundle 加载的程序集其 BaseDirectory 是 AutoCAD 安装目录，
+                // 必须用程序集自身位置定位 bundle 内的 Resources。
+                string baseDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? string.Empty;
+                string manifestPath = Path.Combine(baseDirectory, "Resources", "autocad_tools.json");
                 if (File.Exists(manifestPath))
                 {
                     JObject payload = JObject.Parse(File.ReadAllText(manifestPath));

@@ -2,25 +2,34 @@
   "mcpServers": {
     "cadmcp": {
       "type": "stdio",
-      "command": "powershell",
+      "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
       "args": [
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "scripts/start-cadmcp.ps1"
+        "H:\\codex\\AgentBridge\\scripts\\start-cadmcp.ps1"
       ],
       "env": {}
     },
     "hostmcp": {
       "type": "stdio",
-      "command": "powershell",
+      "command": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
       "args": [
         "-NoProfile",
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "scripts/start-hostmcp.ps1"
+        "H:\\codex\\AgentBridge\\scripts\\start-hostmcp.ps1"
+      ],
+      "env": {}
+    },
+    "agentbridge": {
+      "type": "stdio",
+      "command": "C:\\Users\\chang_k\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+      "args": [
+        "-m",
+        "control_mcp"
       ],
       "env": {}
     }
