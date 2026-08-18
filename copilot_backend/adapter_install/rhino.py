@@ -19,11 +19,17 @@ STARTUP_NAME = "AgentBridgeHost_startup.py"
 
 STARTUP_SCRIPT = '''#! python 3
 # AgentBridge Rhino host startup (diagnostic logging included).
+# Compatible with Python 2.7 (Rhino 6 / IronPython) and Python 3 (Rhino 7+).
+import io
 import os
 import json
 import sys
 import traceback
-import urllib.request
+
+try:
+    import urllib.request as _urllib_request  # Python 3
+except ImportError:
+    import urllib2 as _urllib_request  # Python 2.7
 
 LOG_PATH = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "rhino-startup.log")
 
@@ -32,20 +38,47 @@ LOG_PATH = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "rhin
 # the canonical Rhino scripts directory instead.
 _SCRIPTS_DIR = os.path.join(
     os.environ.get("APPDATA", ""),
-    "McNeel", "Rhinoceros", "8.0", "scripts",
+    "McNeel", "Rhinoceros", "__RHINO_VERSION__", "scripts",
 )
 _REGISTRY_DIR = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "hosts")
+
+
+def _ensure_dir(path):
+    try:
+        os.makedirs(path)
+    except OSError:
+        pass
 
 
 def _log(message):
     try:
         import datetime
         stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
-        with open(LOG_PATH, "a", encoding="utf-8") as handle:
+        _ensure_dir(os.path.dirname(LOG_PATH))
+        with io.open(LOG_PATH, "a", encoding="utf-8") as handle:
             handle.write("[" + stamp + "] " + message + "\\n")
     except Exception:
         pass
+
+
+def _http_status(url, token, timeout):
+    req = _urllib_request.Request(url, headers={"x-cadcopilot-token": token})
+    try:
+        # Bypass the system proxy: on this machine a local proxy (clash/v2ray)
+        # intercepts 127.0.0.1 and makes the health probe return 502.
+        _opener = _urllib_request.build_opener(_urllib_request.ProxyHandler({}))
+        resp = _opener.open(req, timeout=timeout)
+    except Exception:
+        return None
+    try:
+        code = resp.getcode()
+    except Exception:
+        code = None
+    try:
+        resp.close()
+    except Exception:
+        pass
+    return code
 
 
 _log("AgentBridge Rhino startup running")
@@ -76,29 +109,39 @@ try:
             if not _name.startswith("rhino-main-"):
                 continue
             try:
-                with open(os.path.join(_REGISTRY_DIR, _name), encoding="utf-8") as _fh:
+                with io.open(os.path.join(_REGISTRY_DIR, _name), "r", encoding="utf-8") as _fh:
                     _reg = json.load(_fh)
                 if not _pid or str(_reg.get("pid")) != _pid:
                     continue
+                _code = _http_status(
+                    _reg["endpoint"].rstrip("/") + "/health",
+                    _reg.get("token", ""),
+                    1,
+                )
+                if _code == 200:
+                    _alive = True
+                    _log("host already running; skipping duplicate startup")
+                    break
+                _log("stale registration for this process; removing " + _name)
                 try:
-                    _req = urllib.request.Request(
-                        _reg["endpoint"].rstrip("/") + "/health",
-                        headers={"x-cadcopilot-token": _reg.get("token", "")},
-                    )
-                    with urllib.request.urlopen(_req, timeout=1) as _resp:
-                        if _resp.status == 200:
-                            _alive = True
-                            _log("host already running; skipping duplicate startup")
-                            break
+                    os.remove(os.path.join(_REGISTRY_DIR, _name))
                 except Exception:
-                    _log("stale registration for this process; removing " + _name)
-                    try:
-                        os.remove(os.path.join(_REGISTRY_DIR, _name))
-                    except Exception:
-                        pass
+                    pass
             except Exception:
                 continue
 
+    # Re-import the host package. Rhino caches modules in sys.modules for the
+    # whole session, and the adapter is imported both as "agentbridge_rhino.*"
+    # and as top-level "backend"/"host"/"registration", so purge anything
+    # whose source lives under the agentbridge_rhino folder.
+    for _mod_name in list(sys.modules):
+        _mod = sys.modules.get(_mod_name)
+        try:
+            _src = str(getattr(_mod, "__file__", "") or "")
+        except Exception:
+            _src = ""
+        if "agentbridge_rhino" in _src:
+            del sys.modules[_mod_name]
     import agentbridge_rhino.background_host as host
 
     if not _alive:
@@ -118,18 +161,18 @@ try:
                     if not _name.startswith("rhino-main-"):
                         continue
                     try:
-                        with open(os.path.join(_REGISTRY_DIR, _name), encoding="utf-8") as _fh:
+                        with io.open(os.path.join(_REGISTRY_DIR, _name), "r", encoding="utf-8") as _fh:
                             _reg = json.load(_fh)
                         if _pid and str(_reg.get("pid")) != _pid:
                             continue
-                        _req = urllib.request.Request(
+                        _code = _http_status(
                             _reg["endpoint"].rstrip("/") + "/health",
-                            headers={"x-cadcopilot-token": _reg.get("token", "")},
+                            _reg.get("token", ""),
+                            2,
                         )
-                        with urllib.request.urlopen(_req, timeout=2) as _resp:
-                            if _resp.status == 200:
-                                _ok = True
-                                break
+                        if _code == 200:
+                            _ok = True
+                            break
                     except Exception:
                         continue
             if _ok:
@@ -196,7 +239,7 @@ def install_rhino_adapter(
         shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
         startup = startup_target_path(version, root)
         startup.parent.mkdir(parents=True, exist_ok=True)
-        startup.write_text(STARTUP_SCRIPT, encoding="utf-8")
+        startup.write_text(STARTUP_SCRIPT.replace("__RHINO_VERSION__", version), encoding="utf-8")
         installed.append(str(target))
     return {
         "ok": True,

@@ -324,7 +324,7 @@ def _adapter_status_map() -> dict:
         "sketchup": {
             "installed": any(entry.get("installed") for entry in sketchup.get("extensions") or [])
         },
-        "rhino": {"installed": bool(rhino.get("installed"))},
+        "rhino": {"installed": any(a.get("installed") for a in rhino.get("adapters") or [])},
         "autocad": autocad,
     }
 

@@ -57,6 +57,10 @@ namespace AgentBridge.Core
                     return;
                 }
 
+                // Ensure settings are loaded before reading bridge config: the lazy
+                // bridge may be started by a startup script before OnFirstIdle has run.
+                Config.Load();
+
                 if (!bool.TryParse(Config.Get("LOCAL_BRIDGE_ENABLED", "true"), out bool enabled) || !enabled)
                 {
                     Logger.Info("LocalToolBridge disabled by config.");
@@ -280,6 +284,24 @@ namespace AgentBridge.Core
                 return CreateJsonResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, BuildContractToolResponse(rollbackPayload, response));
             }
 
+            if (request.Method == "POST" && request.Path == "/tools/execute")
+            {
+                LocalToolRequest payload = DeserializePayload<LocalToolRequest>(request.Body);
+                if (payload == null || string.IsNullOrWhiteSpace(payload.ToolName))
+                {
+                    return CreateJsonResponse(HttpStatusCode.BadRequest, new ToolResponse
+                    {
+                        Ok = false,
+                        ErrorCode = "invalid_request",
+                        ErrorMessage = "tool_name is required."
+                    });
+                }
+
+                ToolResponse response = await ExecuteToolAsync(payload).ConfigureAwait(false);
+                LogToolAudit(payload, response);
+                return CreateJsonResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, response);
+            }
+
             if (request.Method == "POST" && request.Path.StartsWith("/tools/", StringComparison.OrdinalIgnoreCase))
             {
                 string hostToolName = Uri.UnescapeDataString(request.Path.Substring("/tools/".Length)).Trim().ToLowerInvariant();
@@ -305,24 +327,6 @@ namespace AgentBridge.Core
                 ToolResponse response = await ExecuteToolAsync(hostPayload).ConfigureAwait(false);
                 LogToolAudit(hostPayload, response);
                 return CreateJsonResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, BuildContractToolResponse(hostPayload, response));
-            }
-
-            if (request.Method == "POST" && request.Path == "/tools/execute")
-            {
-                LocalToolRequest payload = DeserializePayload<LocalToolRequest>(request.Body);
-                if (payload == null || string.IsNullOrWhiteSpace(payload.ToolName))
-                {
-                    return CreateJsonResponse(HttpStatusCode.BadRequest, new ToolResponse
-                    {
-                        Ok = false,
-                        ErrorCode = "invalid_request",
-                        ErrorMessage = "tool_name is required."
-                    });
-                }
-
-                ToolResponse response = await ExecuteToolAsync(payload).ConfigureAwait(false);
-                LogToolAudit(payload, response);
-                return CreateJsonResponse(response.Ok ? HttpStatusCode.OK : HttpStatusCode.BadRequest, response);
             }
 
             return CreateTextResponse(HttpStatusCode.NotFound, "Not found.");
@@ -438,7 +442,7 @@ namespace AgentBridge.Core
 
         private static JObject BuildContractHealthResponse(ToolResponse health)
         {
-            JObject result = health.Result as JObject ?? new JObject();
+            JObject result = health.Result != null ? JObject.FromObject(health.Result) : new JObject();
             string pluginVersion = ((result["plugin"] as JObject)?["version"])?.ToString() ?? "unknown";
             JToken documentOpenToken = (result["autocad"] as JObject)?["document_open"];
             bool documentOpen = documentOpenToken != null && documentOpenToken.Type == JTokenType.Boolean && documentOpenToken.Value<bool>();

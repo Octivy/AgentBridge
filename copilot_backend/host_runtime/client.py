@@ -63,6 +63,7 @@ class HostClient:
                 headers=self._headers,
                 json=payload,
                 timeout=self._timeout,
+                trust_env=False,
             )
         except httpx.HTTPError as exc:
             raise HostError(f"host request failed: {exc}", error_code="connection_error") from exc

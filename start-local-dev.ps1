@@ -73,7 +73,7 @@ $health = Test-BridgeHealth
 if ($ForceRestartService) {
     $existingProcesses = Get-BridgeServiceProcess
     foreach ($process in $existingProcesses) {
-        Stop-Process -Id $process.ProcessId -Force
+        Stop-Process -Id $process.ProcessId -Force -ErrorAction SilentlyContinue
     }
     $health = $null
 }

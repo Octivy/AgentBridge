@@ -102,7 +102,8 @@
     /* 连接步骤进度 */
     .connect-steps { margin-top: 10px; border-top: 1px dashed #262c3a; padding-top: 8px; }
     .connect-steps .cs { font-size: 12px; margin: 3px 0; }
-    .connect-steps .cs .cs-detail { color: #7d8798; margin-left: 18px; display: block; }
+    .connect-steps .cs .cs-detail { color: #7d8798; margin-left: 18px; display: block; white-space: pre-wrap; }
+    .connect-steps .cs .cs-detail-warn { color: #f0c08a; background: #241d12; border: 1px solid #4a3a1e; border-radius: 4px; padding: 6px 8px; margin-left: 0; margin-top: 4px; }
     .cs.ok::before { content: "✓ "; color: #8ee6b0; }
     .cs.fail::before { content: "✗ "; color: #f0a3a3; }
     .cs.run::before { content: "… "; color: #f5d28e; }
@@ -267,7 +268,7 @@
           {
             title: "2. 连接一个软件",
             done: configs.some((c) => c.health_ok),
-            hint: "先打开软件 → 一键连接装插件 → 测试连接看状态",
+            hint: "点“连接”装插件 → 重启软件/运行脚本注册 → 再点“连接”看状态",
             action: "software",
           },
         ];
@@ -363,7 +364,7 @@
         if (stepsBox) {
           stepsBox.innerHTML = (result.steps || []).map((s) =>
             `<div class="cs ${s.ok ? "ok" : "fail"}">${esc(s.message)}` +
-            (s.detail ? `<span class="cs-detail">${esc(s.detail)}</span>` : "") +
+            (s.detail ? `<span class="cs-detail${s.ok ? "" : " cs-detail-warn"}">${esc(s.detail)}</span>` : "") +
             `</div>`
           ).join("") +
           `<div class="cs ${result.ok ? "ok" : "fail"}"><b>${esc(result.summary || "")}</b></div>`;
@@ -380,10 +381,10 @@
 
     // ---------- 软件配置 ----------
     const _SOFT_GUIDES = {
-      blender: "打开 Blender → 点“连接”（自动装插件） → 重启 Blender → 再点“连接”。",
-      sketchup: "点“连接”（自动装插件） → 重启 SketchUp → 再点“连接”。",
-      rhino: "点“连接”（自动装适配器） → Rhino 命令栏运行 _-RunPythonScript 启动脚本（%APPDATA%\\McNeel\\Rhinoceros\\8.0\\scripts\\AgentBridgeHost_startup.py） → 再点“连接”。",
-      autocad: "点“连接”（自动装插件） → 启动 AutoCAD → 命令栏输入 TESTCOPILOT → 再点“连接”。",
+      blender: "① 点“连接”（自动安装插件） ② 完全关闭并重新打开 Blender（插件需重启后自动加载） ③ 再点“连接”，状态变绿即成功。",
+      sketchup: "① 点“连接”（自动安装扩展） ② 完全关闭并重新打开 SketchUp ③ 打开或新建一个模型（欢迎界面不加载插件） ④ 再点“连接”。",
+      rhino: "① 点“连接”（自动安装适配器） ② 在 Rhino 命令栏只输入 RunPythonScript 并回车 ③ 在弹出的文件框中选择 AgentBridgeHost_startup.py（不要粘贴任何文字） ④ 再点“连接”。",
+      autocad: "① 点“连接”（插件包已装） ② 启动 AutoCAD（插件自动加载） ③ 若未注册，命令栏输入 TESTCOPILOT 回车 ④ 再点“连接”。",
     };
 
     async function loadConfigs() {

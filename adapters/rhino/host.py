@@ -4,39 +4,94 @@ The HTTP server uses only the Python standard library so it runs inside
 Rhino's bundled Python without extra dependencies. Document operations must run
 on Rhino's main thread: they are queued and drained from ``RhinoApp.Idle`` (a
 fallback daemon poller is used outside Rhino / in unit tests).
+
+Compatible with Python 2.7 (Rhino 6 / IronPython) and Python 3 (Rhino 7+).
 """
 
-from __future__ import annotations
+from __future__ import absolute_import, division, print_function
 
 import json
-import queue
-import secrets
+import os
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any, Callable, Dict, List, Optional
+
+try:
+    import queue  # Python 3
+except ImportError:
+    import Queue as queue  # Python 2.7
+
+try:
+    from http.server import BaseHTTPRequestHandler, HTTPServer  # Python 3
+except ImportError:
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer  # Python 2.7
 
 
-SnapshotFn = Callable[[Dict[str, Any]], Dict[str, Any]]
-ExecuteFn = Callable[[str, Dict[str, Any], bool], Dict[str, Any]]
-RollbackFn = Callable[[str], Dict[str, Any]]
+def _new_token():
+    try:
+        import secrets  # Python 3.6+
+        return secrets.token_hex(32)
+    except ImportError:
+        pass
+    try:
+        import binascii
+        return binascii.hexlify(os.urandom(32)).decode("ascii")
+    except Exception:
+        pass
+    # Last-resort fallback for runtimes without os.urandom (some IronPython builds).
+    import random
+    random.seed()
+    return "".join("%08x" % random.getrandbits(32) for _ in range(8))
 
 
-def _json_response(handler: BaseHTTPRequestHandler, status: int, payload: Dict[str, Any]) -> None:
-    body = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
+def _json_response(handler, status, payload):
+    body = json.dumps(payload, ensure_ascii=False, default=str)
+    try:
+        byte_len = len(body.encode("utf-8"))
+    except (UnicodeDecodeError, AttributeError):
+        byte_len = len(body)
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
-    handler.send_header("Content-Length", str(len(body)))
+    handler.send_header("Content-Length", str(byte_len))
     handler.end_headers()
-    handler.wfile.write(body)
+    handler._send(body)
 
 
-def _make_handler(adapter: "HostAdapter") -> type:
+def _make_handler(adapter):
     class Handler(BaseHTTPRequestHandler):
-        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
+        def log_message(self, format, *args):
             return
 
-        def do_GET(self) -> None:  # noqa: N802
+        def _send(self, data):
+            # IronPython 2.7's socket.sendall accepts str (the old "buffer"
+            # type) but rejects bytearray; Python 3 needs bytes. Route around
+            # wfile entirely to avoid IronPython's broken SocketFile which
+            # does memoryview(str) and fails with "expected IBufferProtocol".
+            if isinstance(data, str) and not isinstance(data, bytes):
+                data = data.encode("utf-8")
+            self.connection.sendall(data)
+
+        def send_response(self, code, message=None):
+            self.log_request(code)
+            if message is None:
+                if code in self.responses:
+                    message = self.responses[code][0]
+                else:
+                    message = ''
+            self._send("HTTP/1.0 %d %s\r\n" % (code, message))
+
+        def send_header(self, keyword, value):
+            self._send("%s: %s\r\n" % (keyword, value))
+
+        def end_headers(self):
+            self._send("\r\n")
+
+        def finish(self):
+            try:
+                self.connection.close()
+            except Exception:
+                pass
+
+        def do_GET(self):
             if not self._authorized():
                 return
             if self.path.rstrip("/") == "/manifest":
@@ -47,7 +102,7 @@ def _make_handler(adapter: "HostAdapter") -> type:
                 return
             _json_response(self, 404, {"ok": False, "error_code": "not_found", "error_message": "unknown endpoint"})
 
-        def do_POST(self) -> None:  # noqa: N802
+        def do_POST(self):
             if not self._authorized():
                 return
             body = self._read_json()
@@ -59,12 +114,12 @@ def _make_handler(adapter: "HostAdapter") -> type:
                 _json_response(self, 200, adapter.rollback((body or {}).get("rollback_token") or ""))
                 return
             if path.startswith("/tools/"):
-                tool_name = path[len("/tools/") :]
+                tool_name = path[len("/tools/"):]
                 _json_response(self, 200, adapter.execute_tool(tool_name, body or {}))
                 return
             _json_response(self, 404, {"ok": False, "error_code": "not_found", "error_message": "unknown endpoint"})
 
-        def _authorized(self) -> bool:
+        def _authorized(self):
             supplied = self.headers.get("x-cadcopilot-token", "")
             if not adapter.token or supplied != adapter.token:
                 _json_response(
@@ -75,15 +130,18 @@ def _make_handler(adapter: "HostAdapter") -> type:
                 return False
             return True
 
-        def _read_json(self) -> Dict[str, Any]:
+        def _read_json(self):
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
                 length = 0
             if length <= 0:
                 return {}
+            raw = self.rfile.read(length)
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8")
             try:
-                return json.loads(self.rfile.read(length).decode("utf-8"))
+                return json.loads(raw)
             except (ValueError, UnicodeDecodeError):
                 return {}
 
@@ -95,51 +153,47 @@ class HostAdapter:
 
     def __init__(
         self,
-        *,
-        host_id: str,
-        host_kind: str,
-        product: str,
-        product_version: str,
-        tools: List[Dict[str, Any]],
-        snapshot_fn: SnapshotFn,
-        execute_fn: ExecuteFn,
-        rollback_fn: Optional[RollbackFn] = None,
-        token: Optional[str] = None,
-        host: str = "127.0.0.1",
-        port: int = 0,
-        protocol_version: str = "1.0",
-    ) -> None:
+        host_id,
+        host_kind,
+        product,
+        product_version,
+        tools,
+        snapshot_fn,
+        execute_fn,
+        rollback_fn=None,
+        token=None,
+        host="127.0.0.1",
+        port=0,
+        protocol_version="1.0",
+    ):
         self.host_id = host_id
         self.host_kind = host_kind
         self.product = product
         self.product_version = product_version
         self.protocol_version = protocol_version
-        self.token = token or secrets.token_hex(32)
-        self._tools = {tool["tool_name"]: dict(tool) for tool in tools}
+        self.token = token or _new_token()
+        self._tools = dict((tool["tool_name"], dict(tool)) for tool in tools)
         self._snapshot_fn = snapshot_fn
         self._execute_fn = execute_fn
         self._rollback_fn = rollback_fn
         self._httpd = HTTPServer((host, port), _make_handler(self))
-        # Single-threaded server: Rhino's embedded CPython is thread-limited
-        # (ThreadingHTTPServer's per-request threads triggered R6016 "not
-        # enough space for thread data" after repeated startups). Requests are
-        # local, small and infrequent; a serial serve loop is plenty.
+        # Single-threaded server: embedded Python is thread-limited and
+        # per-request threads can exhaust thread data after repeated startups.
+        # Requests are local, small and infrequent; a serial serve loop is plenty.
         self.port = int(self._httpd.server_address[1])
-        self.endpoint = f"http://{host}:{self.port}"
-        self._thread: Optional[threading.Thread] = None
+        self.endpoint = "http://%s:%s" % (host, self.port)
+        self._thread = None
 
-    def start(self) -> None:
-        self._thread = threading.Thread(target=self._httpd.serve_forever, daemon=True)
+    def start(self):
+        self._thread = threading.Thread(target=self._httpd.serve_forever)
+        self._thread.daemon = True
         self._thread.start()
 
-    def stop(self) -> None:
+    def stop(self):
         self._httpd.shutdown()
         self._httpd.server_close()
 
-    def registration(self) -> Dict[str, Any]:
-        import os
-        from datetime import datetime, timezone
-
+    def registration(self):
         return {
             "schema_version": 1,
             "host_id": self.host_id,
@@ -150,10 +204,10 @@ class HostAdapter:
             "endpoint": self.endpoint,
             "token": self.token,
             "pid": os.getpid(),
-            "registered_at": datetime.now(timezone.utc).isoformat(),
+            "registered_at": _utc_now_iso(),
         }
 
-    def manifest(self) -> Dict[str, Any]:
+    def manifest(self):
         return {
             "schema_version": 1,
             "host_id": self.host_id,
@@ -165,7 +219,7 @@ class HostAdapter:
             "tools": list(self._tools.values()),
         }
 
-    def health(self) -> Dict[str, Any]:
+    def health(self):
         return {
             "ok": True,
             "product": self.product,
@@ -174,13 +228,13 @@ class HostAdapter:
             "detail": {"host_id": self.host_id, "endpoint": self.endpoint},
         }
 
-    def snapshot(self, scope: Dict[str, Any]) -> Dict[str, Any]:
+    def snapshot(self, scope):
         return self._snapshot_fn(scope)
 
-    def execute_tool(self, tool_name: str, body: Dict[str, Any]) -> Dict[str, Any]:
+    def execute_tool(self, tool_name, body):
         tool = self._tools.get(tool_name)
         if tool is None:
-            return {"ok": False, "error_code": "unknown_tool", "error_message": f"unknown tool: {tool_name}"}
+            return {"ok": False, "error_code": "unknown_tool", "error_message": "unknown tool: %s" % tool_name}
         arguments = dict(body.get("arguments") or {})
         dry_run = bool(body.get("dry_run", False))
         side_effect = str(tool.get("side_effect_level") or "none").strip().lower()
@@ -202,7 +256,7 @@ class HostAdapter:
         result.setdefault("dry_run", dry_run)
         return result
 
-    def rollback(self, rollback_token: str) -> Dict[str, Any]:
+    def rollback(self, rollback_token):
         if self._rollback_fn is None:
             return {"ok": False, "error_code": "rollback_unsupported", "error_message": "rollback is not supported"}
         if not rollback_token:
@@ -225,19 +279,19 @@ class RhinoExecutor:
     Outside Rhino a daemon thread polls the queue so unit tests keep working.
     """
 
-    def __init__(self, runner: Callable[[str, Dict[str, Any], bool], Dict[str, Any]]) -> None:
+    def __init__(self, runner):
         self._runner = runner
-        self._queue: "queue.Queue[tuple]" = queue.Queue()
+        self._queue = queue.Queue()
         self._installed = False
         self._processing = False
-        self._fallback_thread: Optional[threading.Thread] = None
+        self._fallback_thread = None
         self._timer = None
         self.timer_installed = False
         self._idle_installed = False
 
-    def execute(self, tool_name: str, arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+    def execute(self, tool_name, arguments, dry_run):
         event = threading.Event()
-        holder: Dict[str, Any] = {}
+        holder = {}
         self._queue.put((tool_name, arguments, dry_run, event, holder))
         self.install()
         # Wait for the main-thread drain.  If neither the WinForms timer nor
@@ -246,12 +300,10 @@ class RhinoExecutor:
         if event.wait(8):
             return holder.get("result", {"ok": False, "error_code": "no_result"})
         try:
-            import os
-
             log_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "rhino-startup.log")
             with open(log_path, "a") as handle:
                 handle.write("WATCHDOG: main-thread drain stalled; executing %s directly\n" % tool_name)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         self._processing = True
         try:
@@ -263,7 +315,7 @@ class RhinoExecutor:
             self._processing = False
         return holder["result"]
 
-    def poll(self) -> float:
+    def poll(self):
         if self._processing:
             return 0.1
         self._processing = True
@@ -287,7 +339,7 @@ class RhinoExecutor:
             self._processing = False
         return 0.1
 
-    def install(self) -> None:
+    def install(self):
         if self._installed:
             return
         try:
@@ -300,7 +352,7 @@ class RhinoExecutor:
             pass
         self.install_fallback()
 
-    def install_main_thread_timer(self) -> None:
+    def install_main_thread_timer(self):
         """Create a WinForms timer on the calling (main) thread.
 
         Rhino's message pump processes WinForms timer ticks on the thread that
@@ -330,26 +382,37 @@ class RhinoExecutor:
         except Exception:
             self._idle_installed = False
 
-    def install_fallback(self) -> None:
+    def install_fallback(self):
         # Poll from a daemon thread (unit tests / non-Rhino runtimes).
         if self._fallback_thread is None:
-            self._fallback_thread = threading.Thread(target=self._fallback_loop, daemon=True)
+            self._fallback_thread = threading.Thread(target=self._fallback_loop)
+            self._fallback_thread.daemon = True
             self._fallback_thread.start()
             self._installed = True
 
-    def _on_idle(self, sender: Any, e: Any) -> None:
+    def _on_idle(self, sender, e):
         try:
             self.poll()
         except Exception:
             pass
 
-    def _fallback_loop(self) -> None:
+    def _fallback_loop(self):
         while True:
             try:
                 self.poll()
             except Exception:
                 pass
             time.sleep(0.1)
+
+
+def _utc_now_iso():
+    import datetime
+
+    try:
+        utc = datetime.timezone.utc
+        return datetime.datetime.now(utc).isoformat()
+    except AttributeError:  # Python 2.7
+        return datetime.datetime.utcnow().isoformat() + "Z"
 
 
 __all__ = ["HostAdapter", "RhinoExecutor"]

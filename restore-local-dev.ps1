@@ -121,7 +121,7 @@ if (-not $SkipVenv) {
 
         Invoke-Step -Label "Installing copilot_backend dependencies" -Action {
             & $venvPython -m pip install --upgrade pip
-            & $venvPython -m pip install -r (Join-Path $backendRoot "requirements.txt")
+            & $venvPython -m pip install -e "$projectRoot" -r (Join-Path $backendRoot "requirements.txt")
         }
     } else {
         Write-Host "==> copilot_backend/.venv already exists; skipping dependency install"

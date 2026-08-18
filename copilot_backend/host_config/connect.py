@@ -274,16 +274,18 @@ class HostConnector:
                 launched = bool(self._software_launcher(config.host_kind))
             except Exception:  # noqa: BLE001
                 launched = False
+        rhino_script = self._rhino_startup_path()
         kind_hints = {
             "rhino": (
-                "打开 Rhino 后，在【命令栏】输入 _-RunPythonScript 并选择"
-                " %APPDATA%\\McNeel\\Rhinoceros\\8.0\\scripts\\AgentBridgeHost_startup.py"
-                "（注意：不要用 RhinoCode 编辑器运行，编辑器进程退出后宿主会失效）；"
-                "注册成功后回来点“测试连接”。"
+                "在 Rhino【命令栏】只输入 RunPythonScript 并回车，"
+                "在弹出的文件框中选择：\n" + rhino_script + "\n"
+                "（不要用 RhinoCode/Python 编辑器运行，也不要往命令栏粘贴路径文字。）"
+                "脚本运行后宿主自动注册，回来点“测试连接”。"
             ),
             "autocad": (
-                "AutoCAD 插件需先从发布包安装（解压后运行 Install-AgentBridge.ps1），"
-                "随后启动 AutoCAD 会自动加载插件并注册，再回来点“测试连接”。"
+                "插件包已安装。启动 AutoCAD 会自动加载插件并注册；"
+                "若本地桥未启动，在 AutoCAD 命令栏输入 TESTCOPILOT 回车。"
+                "然后回来点“测试连接”。"
             ),
         }
         hint = kind_hints.get(config.host_kind) or (
@@ -338,6 +340,22 @@ class HostConnector:
             item for item in discover_hosts(self._registry_dir) if item.host_kind == host_kind
         ]
         return registrations[0] if registrations else None
+
+    @staticmethod
+    def _rhino_startup_path() -> str:
+        """Path of the installed Rhino startup script for the newest version.
+
+        Falls back to a placeholder so the hint never breaks the connect flow.
+        """
+        try:
+            from adapter_install.rhino import STARTUP_NAME, detect_rhino_versions, rhino_user_root
+
+            versions = detect_rhino_versions()
+            if versions:
+                return os.path.join(str(rhino_user_root()), versions[0], "scripts", STARTUP_NAME)
+        except Exception:  # noqa: BLE001 - a broken hint must not break connect
+            pass
+        return "%APPDATA%\\McNeel\\Rhinoceros\\<版本>\\scripts\\AgentBridgeHost_startup.py"
 
     @staticmethod
     def _result(

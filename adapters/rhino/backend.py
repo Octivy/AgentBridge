@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Rhino backend shared by the host adapter.
 
 All document access goes through ``_active_doc()`` so it always targets the
@@ -7,10 +8,9 @@ because Rhino documents are not thread-safe and ``RhinoDoc.ActiveDoc`` is not
 reliable from background threads.
 """
 
-from __future__ import annotations
+from __future__ import absolute_import, division, print_function
 
 import os
-from typing import Any, Dict
 
 try:
     import Rhino  # type: ignore  # noqa: F401
@@ -23,7 +23,7 @@ except ImportError:  # allow import outside Rhino
     rs = None
 
 
-def _debug_log(message: str) -> None:
+def _debug_log(message):
     try:
         import io
         import os
@@ -115,7 +115,7 @@ TOOLS = [
 ]
 
 
-def require_rs() -> None:
+def require_rs():
     if rs is None:
         raise RuntimeError("rhinoscriptsyntax is required; run inside Rhino")
 
@@ -126,7 +126,7 @@ def _active_doc():
     return Rhino.RhinoDoc.ActiveDoc
 
 
-def _object_count(doc) -> int:
+def _object_count(doc):
     """Count live objects by iterating the object table.
 
     ``ObjectTable.Count`` has known staleness quirks in Rhino 8, so iterate the
@@ -144,7 +144,7 @@ def _object_count(doc) -> int:
             return 0
 
 
-def _find_object(doc, guid_str: str):
+def _find_object(doc, guid_str):
     for obj in doc.Objects:
         try:
             if str(obj.Id) == guid_str:
@@ -154,7 +154,7 @@ def _find_object(doc, guid_str: str):
     return None
 
 
-def _ensure_layer(doc, name: str, color_hex: str = "") -> int:
+def _ensure_layer(doc, name, color_hex=""):
     """Find or create a layer; returns its index.  Falls back to 0 on error."""
     try:
         index = -1
@@ -210,7 +210,7 @@ def _ensure_layer(doc, name: str, color_hex: str = "") -> int:
         return 0
 
 
-def scene_summary() -> Dict[str, Any]:
+def scene_summary():
     doc = _active_doc()
     object_count = _object_count(doc)
     layer_names = [layer.FullPath for layer in doc.Layers]
@@ -229,7 +229,7 @@ def scene_summary() -> Dict[str, Any]:
     }
 
 
-def get_objects(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+def get_objects(arguments, dry_run):
     """List objects with id/layer/name/type/bbox so the Agent can observe the scene."""
     del dry_run
     layer = str(arguments.get("layer") or "").strip()
@@ -269,7 +269,7 @@ def get_objects(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
         total += 1
         if len(objects) >= limit:
             continue
-        entry: Dict[str, Any] = {"id": str(obj.Id)}
+        entry = {"id": str(obj.Id)}
         try:
             entry["layer"] = layer_names.get(obj.Attributes.LayerIndex, str(obj.Attributes.LayerIndex))
         except Exception:  # noqa: BLE001
@@ -316,15 +316,15 @@ def get_objects(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
     }
 
 
-def snapshot(scope: Dict[str, Any]) -> Dict[str, Any]:
+def snapshot(scope):
     del scope
     return {"ok": True, "snapshot": scene_summary()}
 
 
-_ROLLBACK_LEDGER: Dict[str, tuple] = {}
+_ROLLBACK_LEDGER = {}
 
 
-def create_box(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+def create_box(arguments, dry_run):
     size = [float(value) for value in (arguments.get("size") or [2.0, 2.0, 2.0])]
     location = [float(value) for value in (arguments.get("location") or [0.0, 0.0, 0.0])]
     if len(size) != 3 or len(location) != 3:
@@ -388,7 +388,7 @@ def create_box(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
         except Exception as exc2:  # noqa: BLE001
             _debug_log("create_box name (rs) EXC: %r" % (exc2,))
     # Unique rollback token per object so same-named boxes never collide.
-    token = f"rhino-box-{name}-{guid[:8]}"
+    token = "rhino-box-%s-%s" % (name, guid[:8])
     _ROLLBACK_LEDGER[token] = ("box", {"name": name, "guid": guid})
     return {
         "ok": True,
@@ -404,7 +404,7 @@ def create_box(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
     }
 
 
-def delete_object(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+def delete_object(arguments, dry_run):
     """Delete one object by id (the modify step of the agent loop)."""
     object_id = str(arguments.get("object_id") or "").strip()
     if not object_id:
@@ -433,7 +433,7 @@ def delete_object(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
     }
 
 
-def union_layer(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+def union_layer(arguments, dry_run):
     """Boolean-union all Breps on a layer into a single solid."""
     layer = str(arguments.get("layer") or "").strip()
     if not layer:
@@ -582,7 +582,7 @@ def union_layer(arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
     }
 
 
-def runner(tool_name: str, arguments: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+def runner(tool_name, arguments, dry_run):
     if tool_name == "rhino_scene_summary":
         return {"ok": True, "result": scene_summary(), "dry_run": False}
     if tool_name == "rhino_get_objects":
@@ -593,10 +593,10 @@ def runner(tool_name: str, arguments: Dict[str, Any], dry_run: bool) -> Dict[str
         return delete_object(arguments, dry_run)
     if tool_name == "rhino_union_layer":
         return union_layer(arguments, dry_run)
-    return {"ok": False, "error_code": "unknown_tool", "error_message": f"unknown tool: {tool_name}"}
+    return {"ok": False, "error_code": "unknown_tool", "error_message": "unknown tool: %s" % tool_name}
 
 
-def _rollback_log(message: str) -> None:
+def _rollback_log(message):
     try:
         log_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "AgentBridge", "rhino-rollback.log")
         try:
@@ -611,7 +611,7 @@ def _rollback_log(message: str) -> None:
         pass
 
 
-def rollback(rollback_token: str) -> Dict[str, Any]:
+def rollback(rollback_token):
     doc = _active_doc()
     entry = _ROLLBACK_LEDGER.pop(rollback_token, None)
     if entry is None:
