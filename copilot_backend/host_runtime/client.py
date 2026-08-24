@@ -14,6 +14,29 @@ class HostError(RuntimeError):
         self.status_code = status_code
 
 
+# One client per host endpoint: reuses the connection pool and its worker
+# threads across health checks and tool calls. Creating a fresh client per
+# request churns threads (httpcore spawns per-connection threads), which on
+# Windows accumulates thread-data pressure and can surface as CRT R6016.
+_CLIENTS: Dict[str, httpx.Client] = {}
+
+
+def _get_client(endpoint: str, timeout_seconds: float) -> httpx.Client:
+    client = _CLIENTS.get(endpoint)
+    if client is None:
+        client = httpx.Client(base_url=endpoint, timeout=timeout_seconds, trust_env=False)
+        _CLIENTS[endpoint] = client
+    return client
+
+
+def close_client(endpoint: str) -> None:
+    """Close and forget a cached client (e.g. after a host unregisters)."""
+
+    client = _CLIENTS.pop(endpoint, None)
+    if client is not None:
+        client.close()
+
+
 class HostClient:
     """Small client for a single host adapter endpoint."""
 
@@ -55,11 +78,14 @@ class HostClient:
     def rollback(self, rollback_token: str) -> Dict[str, Any]:
         return self._request("POST", "/rollback", {"rollback_token": rollback_token})
 
+    def close(self) -> None:
+        close_client(self._endpoint)
+
     def _request(self, method: str, path: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         try:
-            response = httpx.request(
+            response = _get_client(self._endpoint, self._timeout).request(
                 method,
-                self._endpoint + path,
+                path,
                 headers=self._headers,
                 json=payload,
                 timeout=self._timeout,
@@ -84,4 +110,5 @@ class HostClient:
         return data
 
 
-__all__ = ["HostClient", "HostError"]
+__all__ = ["HostClient", "HostError", "close_client"]
+

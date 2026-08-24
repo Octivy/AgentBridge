@@ -146,6 +146,9 @@ def main(argv: Optional[list[str]] = None) -> None:
     parser.add_argument("--port", type=int, default=int(os.getenv("CADMCP_PORT", "8766")))
     args = parser.parse_args(argv)
 
+    from cadmcp.win_abort import silence_abort_dialogs
+
+    silence_abort_dialogs()  # R6016 must kill the probe silently, never freeze a zombie dialog
     server = mcp
     if args.host != os.getenv("CADMCP_HOST", "127.0.0.1") or args.port != int(os.getenv("CADMCP_PORT", "8766")):
         server = create_mcp_server(host=args.host, port=args.port)

@@ -55,6 +55,9 @@ def main(argv: Optional[list[str]] = None) -> None:
         default=os.getenv("CONTROL_MCP_TRANSPORT", "stdio"),
     )
     args = parser.parse_args(argv)
+    from cadmcp.win_abort import silence_abort_dialogs
+
+    silence_abort_dialogs()  # R6016 must kill the probe silently, never freeze a zombie dialog
     create_control_server().run(transport=args.transport)
 
 

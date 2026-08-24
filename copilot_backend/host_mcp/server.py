@@ -63,7 +63,9 @@ def main(argv: Optional[list[str]] = None) -> None:
     parser.add_argument("--port", type=int, default=int(os.getenv("HOSTMCP_PORT", "8767")))
     parser.add_argument("--registry-dir", default=os.getenv("HOSTMCP_REGISTRY_DIR", ""))
     args = parser.parse_args(argv)
+    from cadmcp.win_abort import silence_abort_dialogs
 
+    silence_abort_dialogs()  # R6016 must kill the probe silently, never freeze a zombie dialog
     executor = HostMcpExecutor(registry_dir=args.registry_dir) if args.registry_dir else None
     server = create_mcp_server(executor, host=args.host, port=args.port)
     server.run(transport=args.transport)
