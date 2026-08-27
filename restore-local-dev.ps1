@@ -121,7 +121,12 @@ if (-not $SkipVenv) {
 
         Invoke-Step -Label "Installing copilot_backend dependencies" -Action {
             & $venvPython -m pip install --upgrade pip
-            & $venvPython -m pip install -e "$projectRoot" -r (Join-Path $backendRoot "requirements.txt")
+            # pip skips the editable install when a same-name/same-version package
+            # already exists (e.g. an older checkout of this project), silently
+            # keeping the stale mapping. Uninstall first so the editable finder
+            # always points at THIS checkout.
+            & $venvPython -m pip uninstall -y cadmcp
+            & $venvPython -m pip install --force-reinstall --no-deps -e "$projectRoot" -r (Join-Path $backendRoot "requirements.txt")
         }
     } else {
         Write-Host "==> copilot_backend/.venv already exists; skipping dependency install"

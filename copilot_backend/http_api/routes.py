@@ -523,7 +523,13 @@ async def agent_access_test() -> dict:
         }
         for entry in build_mcp_servers()
     ]
-    mcp_results = await asyncio.gather(*(_probe_mcp_server(spec) for spec in specs))
+    mcp_results = []
+    # Sequential spawn: each stdio server + its launcher is a process tree that
+    # reserves thread data at startup. Spawning them back-to-back keeps peak
+    # memory/thread commitment low on freshly booted machines, where parallel
+    # spawns have tripped CRT R6016 in the past.
+    for spec in specs:
+        mcp_results.append(await _probe_mcp_server(spec))
 
     from host_mcp.runtime import HostMcpExecutor  # noqa: PLC0415
 
