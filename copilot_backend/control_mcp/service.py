@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from mcp import types
 
+from bridge_explain.explain import READ_TOOLS, explain_tool_result
 from control_mcp.scaffold import scaffold_adapter
 from control_mcp.tools import control_tools
 from agent.host_task import AgentTaskRequest, run_host_task
@@ -163,6 +164,23 @@ class ControlService:
             target_dir=target,
         )
         return _ok("ab_scaffold_adapter", result)
+
+    # ----- 解释层：把软件现状翻译成语义（中间调和方职责） -----
+
+    def _run_ab_explain_drawing(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        host_kind = str(arguments["host_kind"]).strip()
+        if host_kind not in READ_TOOLS:
+            raise ValueError(f"unsupported host_kind: {host_kind} (choose from {sorted(READ_TOOLS)})")
+
+        from host_mcp.runtime import HostMcpExecutor  # noqa: PLC0415 - 只在实际调用时拉起
+
+        executor = HostMcpExecutor()
+        read_name = READ_TOOLS[host_kind]
+        result = executor.execute_tool_sync(read_name, {})
+        if not result.get("ok"):
+            raise ValueError(f"{read_name} failed: {result.get('error_code')} {result.get('error_message')}")
+        explanation = explain_tool_result(host_kind, result)
+        return _ok("ab_explain_drawing", {"host_kind": host_kind, "read_tool": read_name, **explanation})
 
     # ----- task delivery -----
 

@@ -183,6 +183,30 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(body["start_url"], "/ui#overview")
         self.assertEqual(body["display"], "standalone")
 
+    def test_explain_drawing_route_interprets_snapshot(self):
+        snapshot = {
+            "drawing_summary": {"total_entities": 10, "total_layers": 1, "bounds": {"min": [0, 0], "max": [3000, 2000]}},
+            "layers": [{"name": "WALL", "semantic_group": "plan", "count": 3, "types": ["Line"]}],
+            "texts": [],
+            "blocks": [],
+            "frames": [],
+            "entities": [],
+        }
+        executor = Mock()
+        executor.execute_tool_sync.return_value = {"ok": True, "data": {"snapshot": snapshot}}
+        with patch("host_mcp.runtime.HostMcpExecutor", Mock(return_value=executor)):
+            response = self.client.get("/config/explain/drawing", params={"host_kind": "autocad"})
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["counts"]["walls"], 3)
+        self.assertEqual(body["size"]["width_m"], 3.0)
+        self.assertIn("suggestions", body)
+
+    def test_explain_drawing_route_rejects_unknown_kind(self):
+        response = self.client.get("/config/explain/drawing", params={"host_kind": "excel"})
+        self.assertEqual(response.status_code, 400)
+
     def test_client_autostart_get_reports_disabled_when_run_key_absent(self):
         with (
             patch("http_api.routes._autostart_command", Mock(return_value={"mode": "dev", "command": "c"})),

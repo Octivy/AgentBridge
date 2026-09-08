@@ -194,6 +194,15 @@ def control_tools() -> List[types.Tool]:
             },
             ["message"],
         ),
+        _tool(
+            "ab_explain_drawing",
+            "解释软件现状（图纸/场景）",
+            "读取指定软件当前的图纸或场景，并把原始数据翻译成语义解释：图纸规模与单位、"
+            "图层图例（每层的角色）、墙体/门窗/柱/楼梯统计、房间标注、给 Agent 的建议动作。"
+            "写操作前先调它理解现状。",
+            {"host_kind": STR},
+            ["host_kind"],
+        ),
     ]
 
 

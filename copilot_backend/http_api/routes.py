@@ -665,6 +665,29 @@ def ui_web_manifest() -> dict:
     }
 
 
+# ----- 解释层：把软件现状翻译成语义（中间调和方职责） -----
+
+
+@router.get("/config/explain/drawing")
+def explain_drawing_route(host_kind: str = "autocad") -> dict:
+    """读取指定软件的图纸/场景并翻译成语义解释（墙/门窗/图层角色/建议动作）。"""
+
+    from bridge_explain.explain import READ_TOOLS, explain_tool_result  # noqa: PLC0415
+    from host_mcp.runtime import HostMcpExecutor  # noqa: PLC0415
+
+    if host_kind not in READ_TOOLS:
+        raise HTTPException(status_code=400, detail=f"unsupported host_kind: {host_kind}")
+    executor = HostMcpExecutor()
+    read_name = READ_TOOLS[host_kind]
+    result = executor.execute_tool_sync(read_name, {})
+    if not result.get("ok"):
+        raise HTTPException(
+            status_code=502,
+            detail=f"{read_name} failed: {result.get('error_code')} {result.get('error_message')}",
+        )
+    return {"ok": True, "host_kind": host_kind, "read_tool": read_name, **explain_tool_result(host_kind, result)}
+
+
 # ----- 任务交付（交付物 + 交接总结） -----
 
 
