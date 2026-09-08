@@ -2,6 +2,8 @@
 
 import asyncio
 import hmac
+import os
+import sys
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -555,6 +557,111 @@ async def agent_access_test() -> dict:
         "hosts": host_summary,
         "live_read": live,
         "message": "Agent 已可接入并直接驱动软件" if ok else "存在未通过的检查项，见下方详情",
+    }
+
+
+# ----- 启动体验：开机自启（HKCU Run 键）+ PWA manifest -----
+
+_RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+_RUN_NAME = "AgentBridge"
+
+
+def _desktop_exe_path() -> str:
+    """Locate the installed desktop client exe; empty when running from source."""
+
+    candidates = []
+    try:
+        import winreg
+
+        with winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AgentBridge_is1",
+        ) as key:
+            location, _ = winreg.QueryValueEx(key, "InstallLocation")
+            candidates.append(Path(location) / "app" / "AgentBridge.Desktop.exe")
+    except OSError:
+        pass
+    for env_name in ("ProgramFiles", "ProgramFiles(x86)"):
+        root = os.environ.get(env_name)
+        if root:
+            candidates.append(Path(root) / "AgentBridge" / "app" / "AgentBridge.Desktop.exe")
+    for path in candidates:
+        if path.exists():
+            return str(path)
+    return ""
+
+
+def _autostart_command() -> dict:
+    """The command written to the Run key: desktop client when the backend
+    itself runs from the installed layout, else the dev backend via pythonw
+    (no console window)."""
+
+    backend_dir = Path(__file__).resolve().parents[1]
+    program_roots = [
+        os.environ.get("ProgramFiles", r"C:\Program Files"),
+        os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+    ]
+    running_installed = any(
+        str(backend_dir).lower().startswith(root.lower()) for root in program_roots if root
+    )
+    exe = _desktop_exe_path()
+    if running_installed and exe:
+        return {"mode": "desktop", "command": f'"{exe}"'}
+    pythonw = Path(sys.executable).with_name("pythonw.exe")
+    port = os.environ.get("AGENTBRIDGE_PORT", "8000")
+    command = f'"{pythonw}" -m uvicorn app:app --app-dir "{backend_dir}" --host 127.0.0.1 --port {port}'
+    return {"mode": "dev", "command": command}
+
+
+@router.get("/config/client/autostart")
+def client_autostart_get() -> dict:
+    """Read the boot auto-start state (HKCU Run key)."""
+
+    enabled = False
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _RUN_KEY) as key:
+            value, _ = winreg.QueryValueEx(key, _RUN_NAME)
+        enabled = bool(value)
+    except OSError:
+        pass
+    return {"enabled": enabled, **_autostart_command()}
+
+
+@router.post("/config/client/autostart")
+def client_autostart_set(payload: dict) -> dict:
+    """Toggle boot auto-start by writing/removing the HKCU Run key."""
+
+    import winreg
+
+    enabled = bool(payload.get("enabled"))
+    spec = _autostart_command()
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, _RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
+        if enabled:
+            winreg.SetValueEx(key, _RUN_NAME, 0, winreg.REG_SZ, spec["command"])
+        else:
+            try:
+                winreg.DeleteValue(key, _RUN_NAME)
+            except FileNotFoundError:
+                pass
+    return {"enabled": enabled, **spec}
+
+
+@router.get("/ui/manifest.webmanifest")
+def ui_web_manifest() -> dict:
+    """PWA manifest: the panel can be pinned as a standalone app window."""
+
+    return {
+        "name": "AgentBridge 桥接控制台",
+        "short_name": "AgentBridge",
+        "description": "AI Agent 与 CAD/建模软件之间的本地桥接控制台",
+        "start_url": "/ui#overview",
+        "scope": "/ui",
+        "display": "standalone",
+        "background_color": "#12141a",
+        "theme_color": "#12141a",
+        "lang": "zh-CN",
     }
 
 

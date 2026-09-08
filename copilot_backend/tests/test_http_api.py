@@ -1,7 +1,7 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 from fastapi.testclient import TestClient
 
@@ -174,6 +174,48 @@ class HttpApiTests(unittest.TestCase):
         body = response.json()
         self.assertFalse(body["ok"])
         self.assertIsNone(body["live_read"])
+
+    def test_ui_web_manifest_is_served(self):
+        response = self.client.get("/ui/manifest.webmanifest")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["short_name"], "AgentBridge")
+        self.assertEqual(body["start_url"], "/ui#overview")
+        self.assertEqual(body["display"], "standalone")
+
+    def test_client_autostart_get_reports_disabled_when_run_key_absent(self):
+        with (
+            patch("http_api.routes._autostart_command", Mock(return_value={"mode": "dev", "command": "c"})),
+            patch("winreg.OpenKey", MagicMock()),
+            patch("winreg.QueryValueEx", Mock(side_effect=FileNotFoundError)),
+        ):
+            response = self.client.get("/config/client/autostart")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertFalse(body["enabled"])
+        self.assertEqual(body["mode"], "dev")
+
+    def test_client_autostart_set_writes_run_key(self):
+        with (
+            patch("http_api.routes._autostart_command", Mock(return_value={"mode": "desktop", "command": '"C:\\AgentBridge.exe"'})),
+            patch("winreg.OpenKey", MagicMock()),
+            patch("winreg.SetValueEx", Mock()) as set_value,
+        ):
+            response = self.client.post("/config/client/autostart", json={"enabled": True})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["enabled"])
+        set_value.assert_called_once()
+
+    def test_client_autostart_set_removes_run_key(self):
+        with (
+            patch("http_api.routes._autostart_command", Mock(return_value={"mode": "desktop", "command": "c"})),
+            patch("winreg.OpenKey", MagicMock()),
+            patch("winreg.DeleteValue", Mock()) as delete_value,
+        ):
+            response = self.client.post("/config/client/autostart", json={"enabled": False})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["enabled"])
+        delete_value.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12141a">
+  <link rel="manifest" href="/ui/manifest.webmanifest">
   <title>AgentBridge 桥接控制台</title>
   <style>
     :root { color-scheme: dark; }
@@ -133,6 +135,9 @@
       </nav>
       <div class="side-foot">
         <span id="health">正在连接 backend…</span>
+        <label class="check" style="margin-top:6px" id="autostart-row" title="开机自动启动">
+          <input type="checkbox" id="btn-autostart" disabled> 开机自启
+        </label>
         <button id="refresh" class="sm ghost" style="width:100%">刷新</button>
       </div>
     </aside>
@@ -248,7 +253,38 @@
       } catch (err) {
         $("health").textContent = "backend 未连接";
       }
+      loadAutostart();
     }
+
+    // ---------- 开机自启 ----------
+    async function loadAutostart() {
+      try {
+        const data = await api("/config/client/autostart");
+        const box = $("btn-autostart");
+        box.disabled = false;
+        box.checked = !!data.enabled;
+        const hint = data.mode === "desktop"
+          ? "开机自动启动 AgentBridge 桌面客户端（后台驻留托盘）"
+          : "开机自动启动开发后端（pythonw 无窗口运行）";
+        $("autostart-row").title = hint + (data.command ? `\n命令：${data.command}` : "");
+      } catch (err) {
+        $("btn-autostart").disabled = true;  // 旧版后端无此接口
+      }
+    }
+
+    $("btn-autostart").addEventListener("change", async () => {
+      const box = $("btn-autostart");
+      try {
+        const data = await api("/config/client/autostart", {
+          method: "POST",
+          body: JSON.stringify({ enabled: box.checked }),
+        });
+        box.checked = !!data.enabled;
+      } catch (err) {
+        alert("设置开机自启失败：" + err.message);
+        loadAutostart();
+      }
+    });
 
     // ---------- 首次运行向导 ----------
     async function renderWizard() {
