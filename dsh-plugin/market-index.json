@@ -35,11 +35,11 @@
       "versions": [
         {
           "version": "1.0.0",
-          "publishTimestamp": 1795513372,
+          "publishTimestamp": 1795513731,
           "source": {
             "type": "git",
             "url": "https://github.com/Octivy/Agent_Bridge.git",
-            "commit": "70b9eefcc026908cf2ca1bb7506fb37acd821a17",
+            "commit": "6bf95ee8fe273c550e54343575eba7587e93df23",
             "path": "dsh-plugin"
           },
           "engines": {}
