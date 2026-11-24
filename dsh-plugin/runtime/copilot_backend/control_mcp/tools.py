@@ -28,6 +28,7 @@ def _tool(name: str, title: str, description: str, properties: Dict[str, Any], r
             "ab_register_with_claude",
             "ab_scaffold_adapter",
             "ab_install_adapter",
+            "ab_open_panel",
         }),
     )
 
@@ -218,6 +219,13 @@ def control_tools() -> List[types.Tool]:
             "查询目标软件是否已安装 AgentBridge 适配器（安装路径、是否自动启动）。",
             {"host_kind": STR},
             ["host_kind"],
+        ),
+        _tool(
+            "ab_open_panel",
+            "打开网页面板",
+            "在本机启动 AgentBridge 网页面板（含使用说明、软件连接状态、一键连接），返回可访问的 URL。"
+            "面板是给用户看的操作界面；Agent 通常用 ab_list_software 等工具即可。",
+            {"port": {"type": "integer", "minimum": 1024, "maximum": 65535}},
         ),
     ]
 

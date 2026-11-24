@@ -177,6 +177,47 @@ def list_hosts():
     }
 
 
+# ----- 通用工具执行（供任意本地 Agent 通过 HTTP 驱动软件） -----
+
+
+@router.get("/tools")
+def list_tools_route() -> dict:
+    """列出当前可用宿主工具（等价于 MCP hostmcp 的工具清单）。"""
+
+    from host_mcp.runtime import HostMcpExecutor
+
+    executor = HostMcpExecutor()
+    return {"tools": executor.tool_names(), "count": len(executor.tool_names())}
+
+
+@router.post("/tool")
+def execute_tool_route(payload: dict) -> dict:
+    """执行一个宿主工具：{tool_name, arguments, dry_run?, permission_token?, preview_hash?}。
+
+    与 MCP 侧语义一致：写工具先 dry_run=true 拿票据，再带票据提交；返回 rollback_token。
+    这样任何能发 HTTP 的本地 Agent（单位内部 Agent）都能完整驱动软件。
+    """
+
+    from host_mcp.runtime import HostMcpExecutor
+
+    tool_name = str(payload.get("tool_name") or "").strip()
+    if not tool_name:
+        raise HTTPException(status_code=400, detail="tool_name is required")
+    arguments = payload.get("arguments") or {}
+    if not isinstance(arguments, dict):
+        raise HTTPException(status_code=400, detail="arguments must be an object")
+    if "dry_run" in payload:
+        arguments["dry_run"] = bool(payload["dry_run"])
+    for key in ("permission_token", "preview_hash", "permission_request_id", "confirmed_by_local_user", "task_id"):
+        if key in payload:
+            arguments[key] = payload[key]
+    executor = HostMcpExecutor()
+    result = executor.execute_tool_sync(tool_name, arguments)
+    if result.get("error_code") == "unknown_tool":
+        raise HTTPException(status_code=404, detail=result.get("error_message") or tool_name)
+    return result
+
+
 # ----- 配置中心：软件(Host)适配器管理 -----
 
 

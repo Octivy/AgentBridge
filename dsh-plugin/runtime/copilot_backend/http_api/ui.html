@@ -132,6 +132,7 @@
         <button data-section="software">软件配置</button>
         <button data-section="monitor">连接监控</button>
         <button data-section="agents">Agent 接入</button>
+        <button data-section="guide">使用说明</button>
       </nav>
       <div class="side-foot">
         <span id="health">正在连接 backend…</span>
@@ -219,6 +220,65 @@
       <div class="error-line" id="mcp-status"></div>
       <h2 style="margin-top:14px">Codex 配置预览（写入内容）</h2>
       <pre class="code" id="mcp-preview">加载中…</pre>
+    </section>
+  </main>
+
+  <!-- 使用说明 -->
+  <main id="guide" class="hidden">
+    <section>
+      <h2>快速开始</h2>
+      <div class="card">
+        <div class="card-meta"><b>1. 打开软件</b>：AutoCAD / Rhino / SketchUp / Blender 任选要用的打开。</div>
+        <div class="card-meta"><b>2. 装适配器</b>：到「软件配置」逐个点「连接」，或让 Agent 调 <code>ab_install_adapter</code> 一键安装。</div>
+        <div class="card-meta"><b>3. 连上后用</b>：在 Agent 对话里直接说「读取 AutoCAD 当前图纸并解释它」「在 Rhino 里画一个测试盒子」。</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>各软件需要的一次性命令</h2>
+      <div class="card">
+        <div class="card-meta"><b>Blender / SketchUp</b>：无需命令，适配器随软件启动自动加载、自动注册。</div>
+        <div class="card-meta"><b>Rhino</b>：命令栏执行一次（每个 Rhino 会话一次）：
+          <pre class="code">_-RunPythonScript "%APPDATA%\McNeel\Rhinoceros\8.0\scripts\AgentBridgeHost_startup.py"</pre></div>
+        <div class="card-meta"><b>AutoCAD</b>：命令栏输入一次 <code>TESTCOPILOT</code>（插件随 AutoCAD 启动自动加载；也可用 <code>AICHAT</code> 打开插件内面板）。
+          若提示「无效命令」，说明插件未加载：重启 AutoCAD，并确认存在
+          <code>%APPDATA%\Autodesk\ApplicationPlugins\AgentBridge.bundle</code>。</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>看连接状态</h2>
+      <div class="card">
+        <div class="card-meta">「总览」看软件图标（亮=运行中，绿标=已连接）；「连接监控」看宿主注册与全部工具清单；
+          Agent 也可用 <code>ab_list_software</code> 查询。</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>接入自有 Agent（单位内部 Agent）</h2>
+      <div class="card">
+        <div class="card-meta">本桥与 Agent 解耦，两条接入方式任选：</div>
+        <div class="card-meta"><b>A. HTTP API（最通用）</b>：任何能发 HTTP 的 Agent 都能调用本面板后端：
+          <pre class="code">GET  http://127.0.0.1:8000/hosts                       # 宿主与工具清单
+GET  http://127.0.0.1:8000/tools                        # 工具名清单
+POST http://127.0.0.1:8000/tool                         # 执行任意工具（body: {"tool_name","arguments","dry_run"})
+GET  http://127.0.0.1:8000/config/explain/drawing?host_kind=autocad   # 解释图纸
+POST http://127.0.0.1:8000/config/hosts/{host_id}/connect             # 一键连接
+GET  http://127.0.0.1:8000/config/agent/test            # 接入自检</pre></div>
+        <div class="card-meta"><b>B. MCP（若 Agent 支持 MCP）</b>：配置 3 个 stdio 服务器（命令与插件 <code>cordis.patch.yml</code> 一致）：
+          <pre class="code">hostmcp     : &lt;插件内置 python&gt; -m host_mcp --transport stdio   (cwd=runtime/copilot_backend)
+cadmcp      : &lt;插件内置 python&gt; -m cadmcp --transport stdio
+agentbridge : &lt;插件内置 python&gt; -m control_mcp</pre></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>常见问题</h2>
+      <div class="card">
+        <div class="card-meta"><b>Agent 里看不到工具？</b> 新开一个会话（工具集在会话启动时固定）；确认插件「已安装」且启用。</div>
+        <div class="card-meta"><b>命令无效 / 连不上？</b> 见上面各软件命令；重启对应软件后再试。</div>
+        <div class="card-meta"><b>端口每次不同？</b> 正常，软件重启后会分配新端口，宿主注册会自动更新。</div>
+      </div>
     </section>
   </main>
 

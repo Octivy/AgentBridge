@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -223,6 +225,83 @@ class ControlService:
 
             return _ok("ab_adapter_status", autocad_plugin_status())
         raise ValueError(f"unsupported host_kind: {host_kind}")
+
+    # ----- 网页面板（使用说明 + 连接状态 + 一键连接） -----
+
+    def _run_ab_open_panel(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """用插件内置 Python 启动 FastAPI 面板后端，返回面板 URL。"""
+
+        import socket
+        import subprocess
+        import time
+        from pathlib import Path
+
+        port = int(arguments.get("port") or 8000)
+        runtime = Path(__file__).resolve().parents[2]
+        backend = runtime / "copilot_backend"
+        bundled_python = runtime / "python" / "python.exe"
+        python_exe = str(bundled_python) if bundled_python.exists() else sys.executable
+
+        def listening(p: int) -> bool:
+            with socket.socket() as sock:
+                sock.settimeout(0.5)
+                return sock.connect_ex(("127.0.0.1", p)) == 0
+
+        started = False
+        if not listening(port):
+            env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONPATH": str(runtime)}
+            log_path = runtime / "panel.log"
+            flags = 0
+            if os.name == "nt":
+                flags = subprocess.CREATE_NEW_PROCESS_GROUP
+            with open(log_path, "ab") as log:
+                subprocess.Popen(
+                    [
+                        python_exe,
+                        "-m",
+                        "uvicorn",
+                        "app:app",
+                        "--app-dir",
+                        str(backend),
+                        "--host",
+                        "127.0.0.1",
+                        "--port",
+                        str(port),
+                    ],
+                    cwd=str(backend),
+                    env=env,
+                    stdin=subprocess.DEVNULL,
+                    stdout=log,
+                    stderr=log,
+                    creationflags=flags,
+                    close_fds=True,
+                )
+            for _ in range(40):
+                if listening(port):
+                    break
+                time.sleep(0.5)
+            started = True
+
+        if not listening(port):
+            return _ok(
+                "ab_open_panel",
+                {
+                    "ok": False,
+                    "port": port,
+                    "message": f"面板启动失败：端口 {port} 未就绪。详细日志见 {log_path}（请检查端口占用或看日志报错）。",
+                },
+            )
+        url = f"http://127.0.0.1:{port}/ui"
+        return _ok(
+            "ab_open_panel",
+            {
+                "ok": True,
+                "url": url,
+                "port": port,
+                "started": started,
+                "message": f"面板已{'启动' if started else '在运行'}：{url}（含使用说明 / 软件状态 / 一键连接）",
+            },
+        )
 
     # ----- task delivery -----
 

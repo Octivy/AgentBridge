@@ -135,6 +135,43 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/config/snapshot").status_code, 200)
         self.assertEqual(self.client.get("/config/validate").status_code, 200)
 
+    def test_tools_route_lists_host_tools(self):
+        executor = Mock()
+        executor.tool_names.return_value = ["autocad_draw_line", "rhino_create_box"]
+        with patch("host_mcp.runtime.HostMcpExecutor", Mock(return_value=executor)):
+            response = self.client.get("/tools")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["count"], 2)
+
+    def test_tool_route_executes_with_arguments_and_dry_run(self):
+        executor = Mock()
+        executor.execute_tool_sync.return_value = {"ok": True, "tool_name": "rhino_create_box", "data": {"x": 1}}
+        with patch("host_mcp.runtime.HostMcpExecutor", Mock(return_value=executor)):
+            response = self.client.post(
+                "/tool",
+                json={"tool_name": "rhino_create_box", "arguments": {"size": [1, 1, 1]}, "dry_run": True},
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        passed = executor.execute_tool_sync.call_args[0][1]
+        self.assertTrue(passed["dry_run"])
+        self.assertEqual(passed["size"], [1, 1, 1])
+
+    def test_tool_route_requires_tool_name(self):
+        response = self.client.post("/tool", json={"arguments": {}})
+        self.assertEqual(response.status_code, 400)
+
+    def test_tool_route_unknown_tool_returns_404(self):
+        executor = Mock()
+        executor.execute_tool_sync.return_value = {
+            "ok": False,
+            "error_code": "unknown_tool",
+            "error_message": "unknown host tool: nope",
+        }
+        with patch("host_mcp.runtime.HostMcpExecutor", Mock(return_value=executor)):
+            response = self.client.post("/tool", json={"tool_name": "nope"})
+        self.assertEqual(response.status_code, 404)
+
     def test_agent_access_test_reports_mcp_hosts_and_live_read(self):
         fake_entries = [Mock(name="hostmcp", command="py", args=["-m", "hostmcp"], cwd=None)]
         probes = [{"name": "hostmcp", "ok": True, "tools": 22, "error": None}]
