@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "AgentBridge 桥接",
+    "description": "把 AutoCAD、Rhino、SketchUp、Blender 接入 DeepSeek Harness：注册 AgentBridge 的三个 MCP 服务器（hostmcp/cadmcp/agentbridge），让 Agent 能读取图纸、解释图层与房间语义，并以带权限票据和回滚能力的方式驱动建模软件。",
+    "detail": "docs/DETAIL.md"
+  }
+}

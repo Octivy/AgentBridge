@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "title": { "en": "AgentBridge plugins", "zh": "AgentBridge 插件" },
+  "description": {
+    "en": "Bridges between DeepSeek Harness and local CAD/modeling software (AutoCAD, Rhino, SketchUp, Blender).",
+    "zh": "连接 DeepSeek Harness 与本机 CAD/建模软件（AutoCAD、Rhino、SketchUp、Blender）的桥接插件。"
+  },
+  "metadata": {
+    "categories": {
+      "cad": { "title": { "en": "CAD & 3D modeling", "zh": "CAD 与三维建模" } }
+    },
+    "labels": {
+      "mcp": { "title": { "en": "MCP", "zh": "MCP" } }
+    },
+    "sortKeys": {}
+  },
+  "plugins": [
+    {
+      "name": "@local/agentbridge",
+      "title": { "en": "AgentBridge bridge", "zh": "AgentBridge 桥接" },
+      "description": {
+        "en": "Connect AutoCAD, Rhino, SketchUp, and Blender to DeepSeek Harness through three AgentBridge MCP servers (hostmcp/cadmcp/agentbridge): read drawings, interpret layer and room semantics, and drive modeling software with permissioned, rollback-capable writes.",
+        "zh": "通过三个 AgentBridge MCP 服务器（hostmcp/cadmcp/agentbridge）把 AutoCAD、Rhino、SketchUp、Blender 接入 DeepSeek Harness：读取图纸、解释图层与房间语义，并以带权限票据和回滚能力的方式驱动建模软件。"
+      },
+      "icon": "icon.svg",
+      "author": "Octivy",
+      "homepage": "https://github.com/Octivy/Agent_Bridge",
+      "repository": { "url": "https://github.com/Octivy/Agent_Bridge", "directory": "dsh-plugin" },
+      "metadata": {
+        "category": "cad",
+        "keywords": ["agentbridge", "autocad", "rhino", "sketchup", "blender", "cad", "bim", "mcp"],
+        "labels": ["mcp"],
+        "sortKeys": {}
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "publishTimestamp": 0,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/Octivy/Agent_Bridge.git",
+            "commit": "0000000000000000000000000000000000000000",
+            "path": "dsh-plugin"
+          },
+          "engines": {}
+        }
+      ]
+    }
+  ]
+}

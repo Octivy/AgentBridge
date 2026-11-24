@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "AgentBridge bridge",
+    "description": "Connects AutoCAD, Rhino, SketchUp, and Blender to DeepSeek Harness through the three AgentBridge MCP servers (hostmcp/cadmcp/agentbridge), so the agent can read drawings, interpret layer and room semantics, and drive modeling software with permissioned, rollback-capable writes.",
+    "detail": "docs/DETAIL.md"
+  }
+}

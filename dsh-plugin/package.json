@@ -1,0 +1,20 @@
+{
+  "name": "@local/agentbridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Connect AutoCAD, Rhino, SketchUp, and Blender to DeepSeek Harness through the AgentBridge MCP servers.",
+  "exports": {
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg",
+    "runtime/**",
+    "market-index.json"
+  ],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

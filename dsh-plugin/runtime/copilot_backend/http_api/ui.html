@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12141a">
+  <link rel="manifest" href="/ui/manifest.webmanifest">
+  <title>AgentBridge 桥接控制台</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: #12141a; color: #e6e8ee;
+    }
+    /* 左侧导航布局 */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 210px; flex-shrink: 0; background: #161a24;
+      border-right: 1px solid #262c3a; padding: 18px 12px;
+      display: flex; flex-direction: column; gap: 4px;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .sidebar .brand { font-size: 20px; font-weight: 700; color: #e6e8ee; }
+    .sidebar .brand-sub { font-size: 11px; color: #7d8798; margin: 2px 0 16px; }
+    nav.tabs { display: flex; flex-direction: column; gap: 4px; }
+    nav.tabs button {
+      background: transparent; color: #9aa3b2; border: 0; border-radius: 8px;
+      padding: 9px 14px; font-size: 13px; cursor: pointer; text-align: left; width: 100%;
+    }
+    nav.tabs button:hover { background: #1d2433; color: #e6e8ee; }
+    nav.tabs button.active { background: #1f3a6e; color: #fff; }
+    .sidebar .side-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid #262c3a; }
+    #health { color: #9aa3b2; font-size: 12px; display: block; margin-bottom: 8px; word-break: break-all; }
+    .content { flex: 1; padding: 18px 22px; min-width: 0; }
+    button, .btn {
+      background: #2b6de8; color: #fff; border: 0; border-radius: 6px;
+      padding: 7px 14px; cursor: pointer; font-size: 13px;
+    }
+    button:hover, .btn:hover { background: #3b7df8; }
+    button.ghost { background: #232a3a; color: #c9d1de; }
+    button.ghost:hover { background: #2c3446; }
+    button.danger { background: #8c2f2f; }
+    button.danger:hover { background: #a63b3b; }
+    button.sm { padding: 4px 10px; font-size: 12px; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    main.one { grid-template-columns: 1fr; }
+    @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+    section {
+      background: #1a1e28; border: 1px solid #262c3a; border-radius: 10px;
+      padding: 14px; min-height: 120px;
+    }
+    h2 { font-size: 14px; margin: 0 0 10px; color: #c9d1de; }
+    .hidden { display: none; }
+    .empty { color: #7d8798; font-size: 13px; }
+    .badge { border-radius: 4px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+    .badge.ok { background: #1d5c3a; color: #8ee6b0; }
+    .badge.err { background: #5c1d1d; color: #f0a3a3; }
+    .badge.warn { background: #5c4a1d; color: #f5d28e; }
+    .badge.off { background: #2a3040; color: #7d8798; }
+    .chip {
+      display: inline-block; background: #232a3a; border-radius: 6px;
+      padding: 3px 9px; margin: 0 6px 6px 0; font-size: 12px; font-family: Consolas, monospace;
+    }
+    .card {
+      background: #171b24; border: 1px solid #262c3a; border-radius: 10px;
+      padding: 12px; margin-bottom: 12px;
+    }
+    .card-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .card-title { font-weight: 600; font-size: 14px; }
+    .card-meta { color: #9aa3b2; font-size: 12px; margin-top: 4px; }
+    .card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+    label { display: block; font-size: 12px; color: #9aa3b2; margin: 8px 0 3px; }
+    input, textarea, select {
+      width: 100%; background: #12141a; color: #e6e8ee; border: 1px solid #262c3a;
+      border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: inherit;
+    }
+    input:focus, textarea:focus { outline: 1px solid #2b6de8; }
+    textarea { resize: vertical; min-height: 52px; font-family: Consolas, monospace; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .check { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; }
+    .check input { width: auto; }
+    .error-line { color: #f0a3a3; font-size: 12px; margin-top: 6px; min-height: 16px; }
+    .ok-line { color: #8ee6b0; font-size: 12px; margin-top: 6px; }
+    pre.code {
+      background: #12141a; border: 1px solid #262c3a; border-radius: 8px;
+      padding: 10px; font-size: 12px; overflow: auto; white-space: pre-wrap;
+    }
+    /* 首次运行向导 */
+    .wizard { border-color: #2b6de8; background: linear-gradient(135deg, #16203a 0%, #1a1e28 60%); }
+    .wizard-steps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (max-width: 1000px) { .wizard-steps { grid-template-columns: 1fr; } }
+    .wizard-step {
+      background: #12141a; border: 1px solid #262c3a; border-radius: 8px; padding: 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .wizard-step.done { border-color: #1d5c3a; }
+    .wizard-step .ws-title { font-size: 13px; font-weight: 600; }
+    .wizard-step .ws-state { font-size: 12px; color: #7d8798; }
+    .wizard-step.done .ws-state { color: #8ee6b0; }
+    /* 连接步骤进度 */
+    .connect-steps { margin-top: 10px; border-top: 1px dashed #262c3a; padding-top: 8px; }
+    .connect-steps .cs { font-size: 12px; margin: 3px 0; }
+    .connect-steps .cs .cs-detail { color: #7d8798; margin-left: 18px; display: block; white-space: pre-wrap; }
+    .connect-steps .cs .cs-detail-warn { color: #f0c08a; background: #241d12; border: 1px solid #4a3a1e; border-radius: 4px; padding: 6px 8px; margin-left: 0; margin-top: 4px; }
+    .cs.ok::before { content: "✓ "; color: #8ee6b0; }
+    .cs.fail::before { content: "✗ "; color: #f0a3a3; }
+    .cs.run::before { content: "… "; color: #f5d28e; }
+    /* 受支持软件状态面板 */
+    .soft-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 1000px) { .soft-grid { grid-template-columns: 1fr 1fr; } }
+    .soft-card {
+      background: #171b24; border: 1px solid #262c3a; border-radius: 10px;
+      padding: 14px 10px; text-align: center; opacity: 0.5; transition: opacity .2s;
+    }
+    .soft-card.run { opacity: 1; border-color: #2b6de8; }
+    .soft-card .soft-icon { font-size: 30px; line-height: 1.2; }
+    .soft-card .soft-name { font-size: 13px; font-weight: 600; margin-top: 6px; }
+    .soft-card .soft-meta { font-size: 11px; color: #7d8798; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">AgentBridge</div>
+      <div class="brand-sub">Agent ⇄ 软件桥接控制台</div>
+      <nav class="tabs" id="tabs">
+        <button data-section="overview" class="active">总览</button>
+        <button data-section="software">软件配置</button>
+        <button data-section="monitor">连接监控</button>
+        <button data-section="agents">Agent 接入</button>
+      </nav>
+      <div class="side-foot">
+        <span id="health">正在连接 backend…</span>
+        <label class="check" style="margin-top:6px" id="autostart-row" title="开机自动启动">
+          <input type="checkbox" id="btn-autostart" disabled> 开机自启
+        </label>
+        <button id="refresh" class="sm ghost" style="width:100%">刷新</button>
+      </div>
+    </aside>
+    <div class="content">
+
+  <!-- 总览 -->
+  <main id="overview" class="one">
+    <section id="wizard" class="wizard hidden">
+      <h2>快速上手：两步完成桥接</h2>
+      <div class="wizard-steps" id="wizard-steps"></div>
+    </section>
+
+    <section>
+      <h2>运行总览</h2>
+      <div id="overview-body">加载中…</div>
+    </section>
+
+    <section>
+      <h2 style="display:flex;justify-content:space-between;align-items:center">
+        <span>Agent 接入状态</span>
+        <button type="button" class="sm ghost" id="btn-agent-test">测试 Agent 接入</button>
+      </h2>
+      <div class="card-meta" style="margin-bottom:10px">验证 Agent → AgentBridge → 软件的完整链路：MCP 服务器握手 + 宿主工具 + 一次真实只读调用（约 20 秒）</div>
+      <div id="agent-test-result" class="empty">尚未测试</div>
+    </section>
+  </main>
+
+  <!-- 软件配置 -->
+  <main id="software" class="hidden">
+    <section>
+      <h2 style="display:flex;justify-content:space-between;align-items:center">
+        <span>受支持软件</span>
+        <button type="button" class="sm ghost" id="btn-refresh-soft">刷新状态</button>
+      </h2>
+      <div class="card-meta" style="margin-bottom:10px">自动展示本机安装与运行状态：亮色=正在运行，暗色=未运行（每 5 秒自动刷新）</div>
+      <div class="soft-grid" id="soft-grid">加载中…</div>
+    </section>
+    <section>
+      <h2>软件（Host 适配器）</h2>
+      <div id="config-list">加载中…</div>
+    </section>
+  </main>
+
+  <!-- 连接监控 -->
+  <main id="monitor" class="hidden">
+    <section>
+      <h2>已注册宿主（Host Adapter Contract）</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button type="button" class="ghost sm" id="btn-clean-registry">清理陈旧注册</button>
+        <span class="card-meta">软件异常关闭后注册文件可能残留，清理后状态更准确</span>
+      </div>
+      <div id="host-list">加载中…</div>
+      <h2 style="margin-top:16px">Agent 工具</h2>
+      <div id="tool-list">加载中…</div>
+      <h2 style="margin-top:16px">注册错误</h2>
+      <div id="error-list" class="empty">无</div>
+    </section>
+    <section>
+      <h2>连接自愈（守护桥进程）</h2>
+      <div class="row" style="margin-bottom:10px">
+        <button type="button" class="sm" id="btn-heal-start">启动守护</button>
+        <button type="button" class="sm ghost" id="btn-heal-stop">停止守护</button>
+        <button type="button" class="sm ghost" id="btn-events-clear">清空事件</button>
+        <span class="card-meta" id="heal-status">加载中…</span>
+      </div>
+      <div id="event-list" class="empty">加载中…</div>
+    </section>
+  </main>
+
+  <!-- Agent 接入 -->
+  <main id="agents" class="hidden">
+    <section>
+      <h2>Agent 接入（MCP）</h2>
+      <div id="mcp-servers" class="card-meta">加载中…</div>
+      <div class="card-actions" style="margin:10px 0">
+        <button id="btn-write-codex">写入 Codex 配置（~/.codex/config.toml）</button>
+        <button id="btn-write-claude" class="ghost">写入 .mcp.json（项目根目录）</button>
+      </div>
+      <div class="error-line" id="mcp-status"></div>
+      <h2 style="margin-top:14px">Codex 配置预览（写入内容）</h2>
+      <pre class="code" id="mcp-preview">加载中…</pre>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function badge(ok, text) {
+      return `<span class="badge ${ok ? "ok" : "err"}">${text}</span>`;
+    }
+
+    function esc(text) {
+      const div = document.createElement("div");
+      div.textContent = String(text ?? "");
+      return div.innerHTML;
+    }
+
+    async function api(path, options) {
+      const res = await fetch(path, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
+      });
+      if (res.status === 204) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.statusText);
+      return data;
+    }
+
+    async function loadHealth() {
+      try {
+        const data = await api("/health");
+        $("health").textContent = `backend ${data.version}`;
+      } catch (err) {
+        $("health").textContent = "backend 未连接";
+      }
+      loadAutostart();
+    }
+
+    // ---------- 开机自启 ----------
+    async function loadAutostart() {
+      try {
+        const data = await api("/config/client/autostart");
+        const box = $("btn-autostart");
+        box.disabled = false;
+        box.checked = !!data.enabled;
+        const hint = data.mode === "desktop"
+          ? "开机自动启动 AgentBridge 桌面客户端（后台驻留托盘）"
+          : "开机自动启动开发后端（pythonw 无窗口运行）";
+        $("autostart-row").title = hint + (data.command ? `\n命令：${data.command}` : "");
+      } catch (err) {
+        $("btn-autostart").disabled = true;  // 旧版后端无此接口
+      }
+    }
+
+    $("btn-autostart").addEventListener("change", async () => {
+      const box = $("btn-autostart");
+      try {
+        const data = await api("/config/client/autostart", {
+          method: "POST",
+          body: JSON.stringify({ enabled: box.checked }),
+        });
+        box.checked = !!data.enabled;
+      } catch (err) {
+        alert("设置开机自启失败：" + err.message);
+        loadAutostart();
+      }
+    });
+
+    // ---------- 首次运行向导 ----------
+    async function renderWizard() {
+      const wizard = $("wizard");
+      try {
+        const [configs, mcp] = await Promise.all([
+          api("/config/hosts"),
+          api("/config/mcp/status"),
+        ]);
+        const steps = [
+          {
+            title: "1. 接入 Agent",
+            done: (mcp.codex_servers || []).length > 0,
+            hint: "把 MCP 服务器写进 Agent 配置（合并写入，可预览）",
+            action: "agents",
+          },
+          {
+            title: "2. 连接一个软件",
+            done: configs.some((c) => c.health_ok),
+            hint: "点“连接”装插件 → 重启软件/运行脚本注册 → 再点“连接”看状态",
+            action: "software",
+          },
+        ];
+        if (steps.every((s) => s.done)) {
+          wizard.classList.add("hidden");
+          return;
+        }
+        wizard.classList.remove("hidden");
+        $("wizard-steps").innerHTML = steps.map((s, i) => `
+          <div class="wizard-step ${s.done ? "done" : ""}">
+            <span class="ws-title">${s.title}</span>
+            <span class="ws-state">${s.done ? "已完成" : esc(s.hint)}</span>
+            ${s.done ? "" : `<button class="sm" data-wizard="${s.action}">去完成</button>`}
+          </div>`).join("");
+        $("wizard-steps").querySelectorAll("button[data-wizard]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            location.hash = btn.dataset.wizard;
+          });
+        });
+      } catch (err) {
+        wizard.classList.add("hidden");
+      }
+    }
+
+    // ---------- 总览 ----------
+    async function loadOverview() {
+      try {
+        const [hosts, configs] = await Promise.all([api("/hosts"), api("/config/hosts")]);
+        const okCount = configs.filter((c) => c.health_ok).length;
+        const regCount = configs.filter((c) => c.registered).length;
+        $("overview-body").innerHTML =
+          `<p>配置软件：<b>${configs.length}</b> 个；已注册宿主：<b>${regCount}</b>；健康在线：<b>${okCount}</b></p>` +
+          `<p>宿主工具：<b>${hosts.tools.length}</b> 个</p>` +
+          configs.map((c) =>
+            `<div class="card"><div class="card-head"><span class="card-title">${esc(c.name)}</span>` +
+            (c.health_ok ? badge(true, "在线") : badge(false, "离线")) +
+            `<span class="card-meta">${esc(c.host_kind)} · ${esc(c.product_version || "未注册")}</span></div></div>`
+          ).join("") || '<p class="empty">尚无配置</p>';
+      } catch (err) {
+        $("overview-body").textContent = "无法加载：" + err.message;
+      }
+      renderWizard();
+    }
+
+    // ---------- 受支持软件状态面板 ----------
+    const _SOFT_ICONS = { blender: "🍩", sketchup: "📦", rhino: "🦏", autocad: "📐" };
+
+    async function loadSoftwareStatus() {
+      const box = $("soft-grid");
+      try {
+        const data = await api("/config/software/status");
+        box.innerHTML = (data.software || []).map((s) => {
+          const install = s.installed
+            ? '<span style="color:#8ee6b0">已安装</span>'
+            : '<span style="color:#f0a3a3">未安装</span>';
+          const run = s.running ? '<span style="color:#8ee6b0">运行中</span>' : "未运行";
+          const conn = s.connected ? ' · <span class="badge ok">已连接</span>' : "";
+          return `<div class="soft-card ${s.running ? "run" : ""}">
+            <div class="soft-icon">${_SOFT_ICONS[s.host_kind] || "🧩"}</div>
+            <div class="soft-name">${esc(s.name || s.host_kind)}</div>
+            <div class="soft-meta">${install} · ${run}${conn}</div>
+          </div>`;
+        }).join("") || '<p class="empty">暂无软件状态</p>';
+      } catch (err) {
+        box.innerHTML = `<p class="empty">无法加载：${esc(err.message)}</p>`;
+      }
+    }
+
+    $("btn-refresh-soft").addEventListener("click", () => {
+      loadSoftwareStatus();
+      loadConfigs();
+    });
+
+    let _softTimer = null;
+    function startSoftAutoRefresh() {
+      stopSoftAutoRefresh();
+      _softTimer = setInterval(loadSoftwareStatus, 5000);
+    }
+    function stopSoftAutoRefresh() {
+      if (_softTimer) { clearInterval(_softTimer); _softTimer = null; }
+    }
+
+    // ---------- 一键连接（统一编排） ----------
+    async function connectHost(hostId, btn) {
+      const stepsBox = document.querySelector(`.card[data-id="${hostId}"] .connect-steps`);
+      if (btn) btn.disabled = true;
+      if (stepsBox) {
+        stepsBox.classList.remove("hidden");
+        stepsBox.innerHTML = '<div class="cs run">正在连接：检测软件 → 安装插件 → 启动桥接 → 等待注册 → 健康检查…</div>';
+      }
+      try {
+        const result = await api(`/config/hosts/${hostId}/connect`, { method: "POST" });
+        if (stepsBox) {
+          stepsBox.innerHTML = (result.steps || []).map((s) =>
+            `<div class="cs ${s.ok ? "ok" : "fail"}">${esc(s.message)}` +
+            (s.detail ? `<span class="cs-detail${s.ok ? "" : " cs-detail-warn"}">${esc(s.detail)}</span>` : "") +
+            `</div>`
+          ).join("") +
+          `<div class="cs ${result.ok ? "ok" : "fail"}"><b>${esc(result.summary || "")}</b></div>`;
+        }
+        await Promise.all([loadConfigs(), loadOverview()]);
+      } catch (err) {
+        if (stepsBox) {
+          stepsBox.innerHTML = `<div class="cs fail">连接失败：${esc(err.message)}</div>`;
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    // ---------- 软件配置 ----------
+    const _SOFT_GUIDES = {
+      blender: "① 点“连接”（自动安装插件） ② 完全关闭并重新打开 Blender（插件需重启后自动加载） ③ 再点“连接”，状态变绿即成功。",
+      sketchup: "① 点“连接”（自动安装扩展） ② 完全关闭并重新打开 SketchUp ③ 打开或新建一个模型（欢迎界面不加载插件） ④ 再点“连接”。",
+      rhino: "① 点“连接”（自动安装适配器） ② 在 Rhino 命令栏只输入 RunPythonScript 并回车 ③ 在弹出的文件框中选择 AgentBridgeHost_startup.py（不要粘贴任何文字） ④ 再点“连接”。",
+      autocad: "① 点“连接”（插件包已装） ② 启动 AutoCAD（插件自动加载） ③ 若未注册，命令栏输入 TESTCOPILOT 回车 ④ 再点“连接”。",
+    };
+
+    async function loadConfigs() {
+      $("config-list").textContent = "加载中…";
+      try {
+        const configs = await api("/config/hosts");
+        if (!configs.length) {
+          $("config-list").innerHTML = '<p class="empty">尚未配置任何软件</p>';
+          return;
+        }
+        $("config-list").innerHTML = configs.map(renderConfigCard).join("");
+      } catch (err) {
+        $("config-list").innerHTML = '<p class="empty">无法加载：' + err.message + "</p>";
+      }
+    }
+
+    function renderConfigCard(c) {
+      const status = c.health_ok ? badge(true, "在线") :
+        c.registered ? badge(false, "已注册·异常") :
+        c.process_running ? badge(false, "进程运行") :
+        c.enabled ? badge(false, "离线") : badge(false, "已停用");
+      const stateBadge = c.enabled ? "" : '<span class="badge off">未启用</span>';
+      return `<div class="card" data-id="${esc(c.host_id)}">
+        <div class="card-head">
+          <span class="card-title">${esc(c.name)}</span>${status}${stateBadge}
+          <span class="card-meta">${esc(c.host_id)} · ${esc(c.host_kind)}${c.auto_start ? " · 自动启动" : ""}</span>
+        </div>
+        <div class="card-meta">产品：${esc(c.product || "-")} · 版本：${esc(c.product_version || "-")} · 端点：${esc(c.endpoint || "-")}</div>
+        ${c.error ? `<div class="card-meta" style="color:#f0a3a3">${esc(c.error)}</div>` : ""}
+        ${_SOFT_GUIDES[c.host_kind] ? `<div class="card-meta" style="margin-top:6px"><b>操作流程：</b>${esc(_SOFT_GUIDES[c.host_kind])}</div>` : ""}
+        <div class="card-actions">
+          <button data-act="connect">${c.health_ok ? "测试连接" : "连接"}</button>
+        </div>
+        <div class="connect-steps hidden"></div>
+      </div>`;
+    }
+
+    $("config-list").addEventListener("click", async (event) => {
+      const btn = event.target.closest("button[data-act]");
+      if (!btn) return;
+      const card = btn.closest(".card");
+      const id = card.dataset.id;
+      const act = btn.dataset.act;
+      try {
+        if (act === "connect") {
+          await connectHost(id, btn);
+          return;
+        }
+        await Promise.all([loadConfigs(), loadOverview(), loadSoftwareStatus()]);
+      } catch (err) {
+        alert("操作失败：" + err.message);
+      }
+    });
+
+    // ---------- Agent 接入自检 ----------
+    let _agentTestRunning = false;
+    async function loadAgentTest() {
+      if (_agentTestRunning) return;
+      _agentTestRunning = true;
+      const box = $("agent-test-result");
+      box.innerHTML = '<div class="cs run">测试中…（MCP 握手 + 只读探测，约 20 秒）</div>';
+      try {
+        const data = await api("/config/agent/test");
+        const rows = (data.mcp_servers || []).map((s) =>
+          `<div class="cs ${s.ok ? "ok" : "fail"}">MCP 服务器 <b>${esc(s.name)}</b>：${s.ok ? `握手成功，${s.tools} 个工具` : esc(s.error || "失败")}</div>`
+        ).join("");
+        const live = data.live_read
+          ? `<div class="cs ${data.live_read.ok ? "ok" : "fail"}">端到端只读调用 <b>${esc(data.live_read.tool)}</b>：${data.live_read.ok ? "成功" : esc(data.live_read.error)}</div>`
+          : '<div class="cs fail">端到端只读调用：无可用只读工具（宿主不在线？）</div>';
+        box.innerHTML =
+          rows + live +
+          `<div class="cs ${data.ok ? "ok" : "fail"}"><b>${esc(data.message)}</b> · 宿主 ${data.hosts.hosts} 个 · 工具 ${data.hosts.tools} 个</div>`;
+      } catch (err) {
+        box.innerHTML = `<div class="cs fail">测试失败：${esc(err.message)}</div>`;
+      } finally {
+        _agentTestRunning = false;
+      }
+    }
+    $("btn-agent-test").addEventListener("click", loadAgentTest);
+
+    // ---------- 连接监控 ----------
+    async function loadHosts() {
+      $("host-list").textContent = "加载中…";
+      $("tool-list").textContent = "加载中…";
+      try {
+        const data = await api("/hosts");
+        const hosts = data.hosts || [];
+        $("host-list").innerHTML = hosts.length
+          ? hosts.map((h) => {
+              const ok = h.status === "ok";
+              return `<div class="card">
+                <div class="card-head"><span class="card-title">${esc(h.product)} ${esc(h.product_version)}</span>${badge(ok, h.status)}</div>
+                <div class="card-meta">${esc(h.host_kind)} · ${esc(h.host_id)} · ${esc(h.endpoint)} · pid=${esc(h.pid)}</div>
+              </div>`;
+            }).join("")
+          : '<p class="empty">没有发现宿主。请在目标软件（如 Blender）中启动适配器。</p>';
+        $("tool-list").innerHTML = (data.tools || []).map((t) => `<span class="chip">${esc(t)}</span>`).join("") || '<p class="empty">暂无工具</p>';
+        $("error-list").innerHTML = (data.errors || []).length
+          ? data.errors.map((e) => `<div class="card-meta" style="color:#f0a3a3">${esc(e.host_id)}: ${esc(e.error_code)} ${esc(e.message)}</div>`).join("")
+          : '<span class="empty">无</span>';
+      } catch (err) {
+        $("host-list").innerHTML = '<p class="empty">无法连接 backend</p>';
+        $("tool-list").innerHTML = '<p class="empty">无法连接 backend</p>';
+      }
+    }
+
+    $("btn-clean-registry").addEventListener("click", async () => {
+      try {
+        const r = await api("/config/registry/cleanup", { method: "POST" });
+        alert(r.count ? `已清理 ${r.count} 条陈旧注册：\n${r.removed.join("\n")}` : "没有需要清理的陈旧注册");
+        loadHosts();
+        loadHeal();
+      } catch (err) {
+        alert("清理失败：" + err.message);
+      }
+    });
+
+    // ---------- 连接自愈 ----------
+    async function loadHeal() {
+      try {
+        const [heal, events] = await Promise.all([
+          api("/config/connection/heal"),
+          api("/config/connection/events?limit=50"),
+        ]);
+        const restarts = Object.entries(heal.restarts_in_window || {}).map(([id, n]) => `${id}×${n}`).join("、") || "无";
+        $("heal-status").textContent =
+          `${heal.running ? "守护运行中" : "守护未运行"} · 重启预算 ${heal.max_restarts_per_window} 次/${Math.round((heal.restart_window_seconds || 300) / 60)} 分钟 · 窗口内已重启：${restarts}`;
+        const items = events.events || [];
+        $("event-list").innerHTML = items.length
+          ? items.map((e) => {
+              const color = e.level === "warning" ? "#f5d28e" : e.level === "error" ? "#f0a3a3" : "#8ee6b0";
+              const when = (e.ts || "").slice(11, 19);
+              return `<div class="card-meta" style="display:flex;gap:8px;justify-content:space-between;align-items:baseline">
+                <span>${when} ${e.host_id ? `<b>${esc(e.host_id)}</b> · ` : ""}${esc(e.message)}</span>
+                <span style="color:${color};white-space:nowrap">${esc(e.kind)}</span>
+              </div>`;
+            }).join("")
+          : '<span class="empty">暂无连接事件</span>';
+      } catch (err) {
+        $("heal-status").textContent = "无法加载自愈状态";
+        $("event-list").innerHTML = `<p class="empty">${esc(err.message)}</p>`;
+      }
+    }
+
+    $("btn-heal-start").addEventListener("click", async () => {
+      try { await api("/config/connection/heal/start", { method: "POST" }); loadHeal(); } catch (err) { alert("启动守护失败：" + err.message); }
+    });
+    $("btn-heal-stop").addEventListener("click", async () => {
+      try { await api("/config/connection/heal/stop", { method: "POST" }); loadHeal(); } catch (err) { alert("停止守护失败：" + err.message); }
+    });
+    $("btn-events-clear").addEventListener("click", async () => {
+      try { await api("/config/connection/events/clear", { method: "POST" }); loadHeal(); } catch (err) { alert("清空失败：" + err.message); }
+    });
+
+    // ---------- Agent 接入（MCP） ----------
+    async function loadMcpPanel() {
+      try {
+        const [preview, status] = await Promise.all([
+          api("/config/mcp/preview"),
+          api("/config/mcp/status"),
+        ]);
+        const names = preview.servers.map((s) => `<span class="chip">${esc(s.name)}</span>`).join("") || "（无）";
+        $("mcp-servers").innerHTML =
+          `可生成服务器：${names}<br>` +
+          `Codex 配置路径：<code>${esc(status.codex_path)}</code><br>` +
+          `Codex 已注册：${status.codex_servers.length ? status.codex_servers.map((s) => `<span class="chip">${esc(s)}</span>`).join("") : "无"}`;
+        $("mcp-preview").textContent = preview.codex_toml || "（无）";
+        $("mcp-status").textContent = "";
+      } catch (err) {
+        $("mcp-servers").textContent = "加载失败：" + err.message;
+      }
+    }
+
+    async function writeMcp(kind) {
+      const btn = kind === "codex" ? $("btn-write-codex") : $("btn-write-claude");
+      btn.disabled = true;
+      $("mcp-status").textContent = "正在写入…";
+      try {
+        const result = await api(`/config/mcp/${kind}`, { method: "POST", body: "{}" });
+        $("mcp-status").textContent = `已写入：${result.path}（${result.servers.join(", ")}）`;
+      } catch (err) {
+        $("mcp-status").textContent = "写入失败：" + err.message;
+      } finally {
+        btn.disabled = false;
+        loadMcpPanel();
+      }
+    }
+
+    $("btn-write-codex").addEventListener("click", () => writeMcp("codex"));
+    $("btn-write-claude").addEventListener("click", () => writeMcp("claude"));
+
+    // ---------- 路由（对应桌面侧边栏） ----------
+    function route() {
+      const section = (location.hash || "#overview").replace("#", "");
+      document.querySelectorAll("main").forEach((m) => m.classList.add("hidden"));
+      const target = document.getElementById(section) || $("overview");
+      target.classList.remove("hidden");
+      document.querySelectorAll("nav.tabs button").forEach((b) => {
+        b.classList.toggle("active", b.dataset.section === section);
+      });
+      if (section === "overview") { loadOverview(); loadAgentTest(); }
+      if (section === "software") { loadConfigs(); loadSoftwareStatus(); startSoftAutoRefresh(); } else { stopSoftAutoRefresh(); }
+      if (section === "monitor") { loadHosts(); loadHeal(); }
+      if (section === "agents") loadMcpPanel();
+    }
+
+    document.querySelectorAll("nav.tabs button").forEach((b) => {
+      b.addEventListener("click", () => {
+        location.hash = b.dataset.section;
+      });
+    });
+    window.addEventListener("hashchange", route);
+
+    $("refresh").addEventListener("click", () => {
+      loadHealth();
+      route();
+    });
+
+    loadHealth();
+    route();
+    setInterval(loadHealth, 10000);
+  </script>
+    </div>
+  </div>
+</body>
+</html>
