@@ -1,0 +1,6 @@
+python311.zip
+.
+Lib\site-packages
+../copilot_backend
+..
+import site

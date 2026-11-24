@@ -27,6 +27,7 @@ def _tool(name: str, title: str, description: str, properties: Dict[str, Any], r
             "ab_register_with_codex",
             "ab_register_with_claude",
             "ab_scaffold_adapter",
+            "ab_install_adapter",
         }),
     )
 
@@ -200,6 +201,21 @@ def control_tools() -> List[types.Tool]:
             "读取指定软件当前的图纸或场景，并把原始数据翻译成语义解释：图纸规模与单位、"
             "图层图例（每层的角色）、墙体/门窗/柱/楼梯统计、房间标注、给 Agent 的建议动作。"
             "写操作前先调它理解现状。",
+            {"host_kind": STR},
+            ["host_kind"],
+        ),
+        _tool(
+            "ab_install_adapter",
+            "一键安装软件适配器",
+            "把 AgentBridge 适配器安装进目标软件：blender=插件、sketchup=扩展、rhino=脚本包。"
+            "装完重启软件即自动连接。autocad 的 .NET 插件需用桌面安装器或手动 NETLOAD。",
+            {"host_kind": STR},
+            ["host_kind"],
+        ),
+        _tool(
+            "ab_adapter_status",
+            "查询软件适配器安装状态",
+            "查询目标软件是否已安装 AgentBridge 适配器（安装路径、是否自动启动）。",
             {"host_kind": STR},
             ["host_kind"],
         ),

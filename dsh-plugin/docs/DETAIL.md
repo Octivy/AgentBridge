@@ -10,16 +10,14 @@
 |---|---|---|
 | `mcp__hostmcp__*` | 22 | `<软件>_<工具>` 命名空间，直接读写 AutoCAD / Rhino / SketchUp / Blender |
 | `mcp__cadmcp__*` | 13 | AutoCAD 制图工具（画线、批量绘图等） |
-| `mcp__agentbridge__*` | 17 | `ab_*` 控制平面 + 解释层（`ab_list_software`、`ab_explain_drawing` 等） |
+| `mcp__agentbridge__*` | 19 | `ab_*` 控制平面 + 解释层 + 一键装适配器（`ab_install_adapter`、`ab_adapter_status`、`ab_explain_drawing` 等） |
 
 工具名示例：`mcp__hostmcp__autocad_get_drawing_snapshot`、`mcp__agentbridge__ab_explain_drawing`。
 
-## 前置条件（只有一项）
+## 前置条件
 
-插件**自带全部后端代码**（`runtime/` 目录），唯一前置是 **Python 3.11 及其依赖**：
-
-1. 安装 Python 3.11（安装时勾选 **Add python.exe to PATH**）；
-2. 运行插件目录里的 `runtime\setup.ps1` 一次（安装 fastapi / httpx / pydantic / mcp 等依赖）。
+**无需额外安装。** 插件内置 Python 3.11 运行时 + 全部后端代码与软件适配器，
+装上即可用（首次连接会随内置解释器自动加载依赖，约几秒）。
 
 ## 使用方式
 

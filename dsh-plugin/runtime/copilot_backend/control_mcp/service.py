@@ -182,6 +182,54 @@ class ControlService:
         explanation = explain_tool_result(host_kind, result)
         return _ok("ab_explain_drawing", {"host_kind": host_kind, "read_tool": read_name, **explanation})
 
+    # ----- 软件适配器一键安装 / 状态 -----
+
+    def _run_ab_install_adapter(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        host_kind = str(arguments["host_kind"]).strip()
+        if host_kind == "blender":
+            from adapter_install.blender import install_blender_addon  # noqa: PLC0415
+
+            return _ok("ab_install_adapter", install_blender_addon())
+        if host_kind == "sketchup":
+            from adapter_install.sketchup import install_sketchup_extension  # noqa: PLC0415
+
+            return _ok("ab_install_adapter", install_sketchup_extension())
+        if host_kind == "rhino":
+            from adapter_install.rhino import install_rhino_adapter  # noqa: PLC0415
+
+            return _ok("ab_install_adapter", install_rhino_adapter())
+        if host_kind == "autocad":
+            return _ok(
+                "ab_install_adapter",
+                {
+                    "ok": False,
+                    "installed": [],
+                    "message": "AutoCAD 适配器是 .NET 插件，本插件暂不内置 .NET 构建；请用 AgentBridge 桌面安装器，"
+                    "或在 AutoCAD 里用 NETLOAD 加载 AgentBridge.dll（bundle 会自动加载）。",
+                },
+            )
+        raise ValueError(f"unsupported host_kind: {host_kind}")
+
+    def _run_ab_adapter_status(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        host_kind = str(arguments["host_kind"]).strip()
+        if host_kind == "blender":
+            from adapter_install.blender import blender_addon_status  # noqa: PLC0415
+
+            return _ok("ab_adapter_status", blender_addon_status())
+        if host_kind == "sketchup":
+            from adapter_install.sketchup import sketchup_extension_status  # noqa: PLC0415
+
+            return _ok("ab_adapter_status", sketchup_extension_status())
+        if host_kind == "rhino":
+            from adapter_install.rhino import rhino_adapter_status  # noqa: PLC0415
+
+            return _ok("ab_adapter_status", rhino_adapter_status())
+        if host_kind == "autocad":
+            from host_config.detect import autocad_plugin_status  # noqa: PLC0415
+
+            return _ok("ab_adapter_status", autocad_plugin_status())
+        raise ValueError(f"unsupported host_kind: {host_kind}")
+
     # ----- task delivery -----
 
     def _run_ab_list_deliveries(self, arguments: Dict[str, Any]) -> Dict[str, Any]:

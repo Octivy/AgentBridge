@@ -7,7 +7,7 @@ AgentBridge 只负责连接、解释、权限票据与回滚。
 
 - `mcp__hostmcp__<软件>_<工具>`：直接读写软件（22 个工具）。
 - `mcp__cadmcp__<工具>`：AutoCAD 制图工具（13 个）。
-- `mcp__agentbridge__ab_<工具>`：控制平面 + 解释层（17 个）。
+- `mcp__agentbridge__ab_<工具>`：控制平面 + 解释层 + 一键装适配器（19 个）。
 
 ## 铁律
 
@@ -24,7 +24,7 @@ AgentBridge 只负责连接、解释、权限票据与回滚。
 | Rhino | `mcp__hostmcp__rhino_scene_summary` / `rhino_get_objects` | `rhino_create_box`、`rhino_delete_object`、`rhino_union_layer` |
 | SketchUp | `mcp__hostmcp__sketchup_scene_summary` | `sketchup_create_box` |
 | Blender | `mcp__hostmcp__blender_scene_summary` | `blender_create_cube`、`blender_create_primitive` |
-| 控制平面 | `mcp__agentbridge__ab_list_software`、`ab_software_status`、`ab_explain_drawing` | `ab_test_connection`、`ab_start_host`、`ab_stop_host` |
+| 控制平面 | `mcp__agentbridge__ab_list_software`、`ab_software_status`、`ab_explain_drawing`、`ab_adapter_status` | `ab_test_connection`、`ab_start_host`、`ab_stop_host`、`ab_install_adapter` |
 
 ## 图纸 → 3D 墙体工作流
 

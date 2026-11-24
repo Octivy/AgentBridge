@@ -25,11 +25,9 @@ DeepSeek Harness 的第三方插件生态是 **npm 注册表 + 插件市场索�
 
 ## 三、同事安装（最终体验）
 
-1. 安装 Python 3.11（勾选 Add to PATH）；
-2. 打开 DeepSeek Harness → **插件 → 发现 → 添加索引源**，粘贴上面的 raw 地址；
-3. 搜索 "agentbridge" → **安装**（确认安装来源为 GitHub）；
-4. 运行一次 `runtime\setup.ps1` 安装 Python 依赖（或在插件详情页按提示操作）；
-5. 在对话里让 Agent 读图/建模即可。
+1. 打开 DeepSeek Harness → **插件 → 发现 → 添加索引源**，粘贴上面的 raw 地址；
+2. 搜索 "agentbridge" → **安装**（确认安装来源为 GitHub；插件内置 Python 3.11 运行时，无需另装）；
+3. 在对话里让 Agent 读图/建模，或用 `mcp__agentbridge__ab_install_adapter` 一键给软件装适配器。
 
 ## 四、npm 方式（可选，更适合版本管理）
 

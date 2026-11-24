@@ -4,13 +4,12 @@
       config:
         serverName: hostmcp
         transport: stdio
-        command: python
+        command: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime/python/python.exe'"
         args: ['-m', 'host_mcp', '--transport', 'stdio']
         cwd: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime/copilot_backend'"
         env:
           PYTHONUTF8: '1'
           PYTHONIOENCODING: utf-8
-          PYTHONPATH: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime'"
         startupTimeoutMs: 30000
         failOnStartupError: false
     - id: agentbridge-cadmcp
@@ -18,13 +17,12 @@
       config:
         serverName: cadmcp
         transport: stdio
-        command: python
+        command: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime/python/python.exe'"
         args: ['-m', 'cadmcp', '--transport', 'stdio']
         cwd: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime/copilot_backend'"
         env:
           PYTHONUTF8: '1'
           PYTHONIOENCODING: utf-8
-          PYTHONPATH: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime'"
         startupTimeoutMs: 30000
         failOnStartupError: false
     - id: agentbridge-control
@@ -32,12 +30,11 @@
       config:
         serverName: agentbridge
         transport: stdio
-        command: python
+        command: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime/python/python.exe'"
         args: ['-m', 'control_mcp']
         cwd: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime/copilot_backend'"
         env:
           PYTHONUTF8: '1'
           PYTHONIOENCODING: utf-8
-          PYTHONPATH: !!js "process.env.DSH_PROFILE_DIR + '/node_modules/@local/agentbridge/runtime'"
         startupTimeoutMs: 30000
         failOnStartupError: false
