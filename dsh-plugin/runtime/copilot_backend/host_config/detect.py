@@ -195,17 +195,24 @@ def _running_process_names() -> set:
 
     ctypes/psapi 的 QueryFullProcessImageNameW 在部分 Windows 版本上缺失；
     tasklist 输出解析在所有实测环境（含受限沙箱）都可用。
+
+    注意：tasklist 输出用系统 ANSI 代码页（中文 Windows 是 GBK）编码，某些进程名
+    含 GBK 无法解码的字节；若用 text=True 走 locale 解码会抛 UnicodeDecodeError，
+    导致输出被截断、后半段进程全部丢失。这里按字节读取后容错解码。
     """
 
     try:
-        output = subprocess.run(
+        completed = subprocess.run(
             ["tasklist", "/FO", "CSV", "/NH"],
             capture_output=True,
-            text=True,
             timeout=15,
-        ).stdout or ""
+        )
+        raw = completed.stdout or b""
     except Exception:  # noqa: BLE001 - status display must never crash
         return set()
+    output = raw.decode("utf-8", "replace")
+    if "System Idle Process" not in output and '","' not in output:
+        output = raw.decode("gbk", "replace")
     names = set()
     for line in output.splitlines():
         parts = line.split('","')

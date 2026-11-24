@@ -408,7 +408,9 @@ def software_status() -> dict:
                     "host_kind": kind,
                     "name": _SOFTWARE_NAMES.get(kind, kind),
                     "installed": bool(item["detected"]),
-                    "running": bool(running.get(kind, False)),
+                    # 已连接即说明软件在运行；进程探测在受限令牌（低完整性级别）下可能
+                    # 看不到部分进程，用连通性兜底，保证面板状态显示正确。
+                    "running": bool(running.get(kind, False)) or connected,
                     "connected": connected,
                 }
             )

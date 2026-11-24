@@ -247,6 +247,24 @@ class ControlService:
                 sock.settimeout(0.5)
                 return sock.connect_ex(("127.0.0.1", p)) == 0
 
+        def ours(p: int) -> bool:
+            """端口上跑的是不是我们的面板（/tools 可用即认为是）。"""
+
+            import urllib.request
+
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{p}/tools", timeout=2) as resp:
+                    return resp.status == 200
+            except Exception:  # noqa: BLE001
+                return False
+
+        # 端口被其他程序（不是我们的面板）占用时，自动换一个空闲端口
+        if listening(port) and not ours(port):
+            for candidate in range(8020, 8031):
+                if not listening(candidate):
+                    port = candidate
+                    break
+
         started = False
         if not listening(port):
             env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PYTHONPATH": str(runtime)}

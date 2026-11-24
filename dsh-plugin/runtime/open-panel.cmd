@@ -6,7 +6,8 @@ set "RUNTIME=%~dp0"
 set PYTHONUTF8=1
 set PYTHONIOENCODING=utf-8
 set PYTHONPATH=%RUNTIME%
-echo 正在启动 AgentBridge 面板（http://127.0.0.1:8000/ui）...
+set "PANEL_PORT=8020"
+echo 正在启动 AgentBridge 面板（http://127.0.0.1:%PANEL_PORT%/ui）...
 echo 关闭此窗口即停止面板。
-start "" /min cmd /c "timeout /t 4 >nul & start "" http://127.0.0.1:8000/ui"
-"%RUNTIME%python\python.exe" -m uvicorn app:app --app-dir "%RUNTIME%copilot_backend" --host 127.0.0.1 --port 8000
+start "" /min cmd /c "timeout /t 4 >nul & start "" http://127.0.0.1:%PANEL_PORT%/ui"
+"%RUNTIME%python\python.exe" -m uvicorn app:app --app-dir "%RUNTIME%copilot_backend" --host 127.0.0.1 --port %PANEL_PORT%
