@@ -1,0 +1,23 @@
+{
+  "CADCOPILOT_CONNECTION_MODE": "standard",
+  "LLM_PROVIDER": "minimax",
+  "CLAUDE_API_KEY": "",
+  "CLAUDE_MODEL": "claude-sonnet-4-20250514",
+  "OPENAI_API_KEY": "",
+  "OPENAI_API_BASE_URL": "https://api.minimaxi.com/v1",
+  "OPENAI_MODEL": "MiniMax-M2.7",
+  "DIRECT_MODEL_PROFILES": "",
+  "ACTIVE_DIRECT_MODEL": "MiniMax-M2.7",
+  "SERVICE_MODEL_PROFILES": "",
+  "ACTIVE_SERVICE_MODEL": "MiniMax-M2.7",
+  "CADCOPILOT_MODEL": "MiniMax-M2.7",
+  "CADCOPILOT_API_BASE_URL": "http://127.0.0.1:8000",
+  "LOCAL_BRIDGE_ENABLED": "true",
+  "LOCAL_BRIDGE_HOST": "127.0.0.1",
+  "LOCAL_BRIDGE_PORT": "8765",
+  "LOCAL_BRIDGE_TOKEN": "",
+  "LOCAL_BRIDGE_REQUIRE_TOKEN": "false",
+  "CONFIG_SCHEMA_VERSION": "2",
+  "ENVIRONMENT": "development",
+  "LOG_LEVEL": "INFO"
+}

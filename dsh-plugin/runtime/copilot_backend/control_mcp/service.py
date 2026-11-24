@@ -199,15 +199,9 @@ class ControlService:
 
             return _ok("ab_install_adapter", install_rhino_adapter())
         if host_kind == "autocad":
-            return _ok(
-                "ab_install_adapter",
-                {
-                    "ok": False,
-                    "installed": [],
-                    "message": "AutoCAD 适配器是 .NET 插件，本插件暂不内置 .NET 构建；请用 AgentBridge 桌面安装器，"
-                    "或在 AutoCAD 里用 NETLOAD 加载 AgentBridge.dll（bundle 会自动加载）。",
-                },
-            )
+            from host_config.autocad_install import install_autocad_plugin_from_bundle  # noqa: PLC0415
+
+            return _ok("ab_install_adapter", install_autocad_plugin_from_bundle())
         raise ValueError(f"unsupported host_kind: {host_kind}")
 
     def _run_ab_adapter_status(self, arguments: Dict[str, Any]) -> Dict[str, Any]:

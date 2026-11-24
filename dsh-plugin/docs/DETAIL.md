@@ -29,12 +29,12 @@
 ## 连接不上的排查
 
 - 软件未打开 / 适配器未装：先打开软件，再让 Agent 用 `mcp__agentbridge__ab_list_software` 查看状态；
-- Python 依赖缺失：运行 `runtime\setup.ps1`；
+- 适配器未装：让 Agent 调 `mcp__agentbridge__ab_install_adapter(host_kind="blender|sketchup|rhino|autocad")` 一键安装，重启软件即自动连接；
 - 首次连接慢：三个服务器首次启动要 import 依赖，`startupTimeoutMs` 已放宽到 30 秒；
 - 详细工作流见 `docs/SKILL.md`。
 
 ## 说明与限制
 
-- 软件适配器仍需在各软件内部安装一次（AutoCAD 用 NETLOAD/bundle、Rhino 用脚本、
-  SketchUp 用扩展、Blender 用插件）；AgentBridge 控制面板或桌面安装包可一键完成。
-- 后续会把 Python 依赖一并打包（内置独立运行环境），做到真正「装一个插件即用」。
+- 四个软件（AutoCAD / Rhino / SketchUp / Blender）的适配器都可用 `ab_install_adapter` 一键安装
+  （AutoCAD 为预编译 .NET bundle、Rhino 为脚本包、SketchUp 为扩展、Blender 为插件），重启软件即自动加载。
+- 插件内置 Python 3.11 运行时 + 全部后端代码与适配器，无需额外安装。

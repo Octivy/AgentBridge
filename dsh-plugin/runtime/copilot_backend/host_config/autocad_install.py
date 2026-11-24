@@ -78,4 +78,33 @@ def build_and_install_autocad_plugin(autocad_version: str = "2016") -> Dict[str,
     }
 
 
-__all__ = ["build_and_install_autocad_plugin"]
+def install_autocad_plugin_from_bundle() -> Dict[str, Any]:
+    """把插件自带的预编译 AgentBridge.bundle 安装到 AutoCAD 应用插件目录。
+
+    供 DSH 插件内置运行时使用：无需 dotnet 构建，直接把 runtime/autocad/AgentBridge.bundle
+    复制到 %APPDATA%\\Autodesk\\ApplicationPlugins，AutoCAD 启动即自动加载（无需 NETLOAD）。
+    """
+
+    root = _repo_root()
+    source = root / "autocad" / "AgentBridge.bundle"
+    if not source.exists():
+        return {
+            "ok": False,
+            "installed": None,
+            "message": f"插件内未找到预编译包：{source}",
+        }
+    appdata = os.getenv("APPDATA") or str(Path.home())
+    plugins_root = Path(appdata) / "Autodesk" / "ApplicationPlugins"
+    plugins_root.mkdir(parents=True, exist_ok=True)
+    target = plugins_root / "AgentBridge.bundle"
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(source, target)
+    return {
+        "ok": True,
+        "installed": str(target),
+        "message": "插件包已安装到 %APPDATA%\\Autodesk\\ApplicationPlugins\\AgentBridge.bundle，启动 AutoCAD 即自动加载（无需 NETLOAD）。",
+    }
+
+
+__all__ = ["build_and_install_autocad_plugin", "install_autocad_plugin_from_bundle"]
