@@ -2,12 +2,13 @@
 
 import asyncio
 import hmac
+import json
 import os
 import sys
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from pydantic import BaseModel
 
 from cadmcp.tool_registry import get_product_tool, list_product_tools
@@ -188,6 +189,129 @@ def list_tools_route() -> dict:
 
     executor = HostMcpExecutor()
     return {"tools": executor.tool_names(), "count": len(executor.tool_names())}
+
+
+def _agent_mcp_config() -> dict:
+    """构建给外部 Agent 用的 MCP 服务器配置（指向插件内置运行时）。"""
+
+    runtime = Path(__file__).resolve().parents[2]
+    bundled_python = runtime / "python" / "python.exe"
+    python_exe = str(bundled_python) if bundled_python.exists() else sys.executable
+    backend = runtime / "copilot_backend"
+    return {
+        "mcpServers": {
+            "hostmcp": {
+                "command": python_exe,
+                "args": ["-m", "host_mcp", "--transport", "stdio"],
+                "cwd": str(backend),
+            },
+            "cadmcp": {
+                "command": python_exe,
+                "args": ["-m", "cadmcp", "--transport", "stdio"],
+                "cwd": str(backend),
+            },
+            "agentbridge": {
+                "command": python_exe,
+                "args": ["-m", "control_mcp"],
+                "cwd": str(backend),
+            },
+        }
+    }
+
+
+_AGENT_HTTP_ENDPOINTS = [
+    {"method": "GET", "path": "/tools", "desc": "工具名清单"},
+    {"method": "GET", "path": "/hosts", "desc": "宿主与工具详情"},
+    {"method": "POST", "path": "/tool", "desc": "执行任意工具（body: tool_name/arguments/dry_run）"},
+    {"method": "GET", "path": "/config/explain/drawing?host_kind=autocad", "desc": "解释图纸"},
+    {"method": "GET", "path": "/config/software/status", "desc": "软件安装/运行/连接状态"},
+    {"method": "POST", "path": "/config/hosts/{host_id}/connect", "desc": "一键连接软件"},
+    {"method": "GET", "path": "/config/agent/test", "desc": "接入自检"},
+]
+
+
+@router.get("/config/agent/info")
+def agent_connect_info() -> dict:
+    """Agent 接入信息：MCP 配置、HTTP API、连接状态汇总（面板「Agent 接入」用）。"""
+
+    from host_mcp.runtime import HostMcpExecutor
+
+    executor = HostMcpExecutor()
+    tools = executor.tool_names()
+    hosts = executor.hosts()
+    connected = len([h for h in hosts if h.get("status") == "ok"])
+    mcp = _agent_mcp_config()
+    runtime = Path(__file__).resolve().parents[2]
+    return {
+        "mcp": mcp,
+        "mcp_json": json.dumps(mcp, ensure_ascii=False, indent=2),
+        "http": {"endpoints": _AGENT_HTTP_ENDPOINTS},
+        "status": {
+            "hosts_total": len(hosts),
+            "hosts_connected": connected,
+            "tools": len(tools),
+            "runtime": str(runtime),
+        },
+    }
+
+
+@router.get("/config/agent/package")
+def agent_connect_package() -> Response:
+    """导出 Agent 接入包（ZIP）：MCP 配置 + HTTP 说明 + 测试脚本 + README。"""
+
+    import io
+    import zipfile
+
+    mcp = _agent_mcp_config()
+    mcp_json = json.dumps(mcp, ensure_ascii=False, indent=2)
+    http_lines = "\n".join(
+        f"{item['method']:5s} {{base}}{item['path']}  # {item['desc']}" for item in _AGENT_HTTP_ENDPOINTS
+    )
+    readme = f"""# AgentBridge 接入包
+
+本目录让任意本地 Agent 接入 AgentBridge 桥（驱动 AutoCAD/Rhino/SketchUp/Blender）。
+
+## 方式一：MCP（推荐，支持 MCP 的 Agent）
+把 mcp-config.json 里的 mcpServers 合并到你 Agent 的 MCP 配置中（Codex: ~/.codex/config.toml；
+Claude: .mcp.json；其他 Agent 按其文档）。三个 stdio 服务器启动后即可看到约 52 个工具。
+
+## 方式二：HTTP API（任意 Agent）
+先启动面板后端（双击 open-panel.cmd 或让 Agent 调 ab_open_panel），然后调用：
+
+{http_lines}
+
+示例（PowerShell）：
+  Invoke-RestMethod http://127.0.0.1:8020/tools
+  Invoke-RestMethod http://127.0.0.1:8020/tool -Method POST -ContentType application/json `
+    -Body '{{"tool_name":"autocad_get_drawing_snapshot","arguments":{{}}}}'
+
+写操作协议：先 dry_run=true 拿 permission_token，再带票据提交；返回 rollback_token 可回滚。
+
+## 验证
+运行 test-agent.ps1（HTTP 方式）确认能读到工具与图纸。
+"""
+    test_ps1 = """# AgentBridge 接入测试（HTTP 方式）
+param([string]$Base = "http://127.0.0.1:8020")
+try {
+  $tools = Invoke-RestMethod "$Base/tools" -TimeoutSec 15
+  Write-Host "工具数: $($tools.count)"
+  $snap = Invoke-RestMethod "$Base/tool" -Method POST -ContentType "application/json" `
+    -Body '{"tool_name":"autocad_get_drawing_snapshot","arguments":{}}' -TimeoutSec 30
+  Write-Host "读图 ok=$($snap.ok)"
+  Write-Host "接入成功"
+} catch { Write-Host "接入失败: $($_.Exception.Message)" }
+"""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("mcp-config.json", mcp_json)
+        zf.writestr("README.md", readme)
+        zf.writestr("test-agent.ps1", test_ps1)
+    buffer.seek(0)
+    return Response(
+        content=buffer.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": 'attachment; filename="agentbridge-agent-pack.zip"'},
+    )
 
 
 @router.post("/tool")

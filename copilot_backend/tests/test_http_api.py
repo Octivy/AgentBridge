@@ -143,6 +143,25 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["count"], 2)
 
+    def test_agent_connect_info_exposes_mcp_http_and_status(self):
+        executor = Mock()
+        executor.tool_names.return_value = ["a", "b"]
+        executor.hosts.return_value = [{"status": "ok"}, {"status": "error"}]
+        with patch("host_mcp.runtime.HostMcpExecutor", Mock(return_value=executor)):
+            response = self.client.get("/config/agent/info")
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["status"]["tools"], 2)
+        self.assertEqual(body["status"]["hosts_connected"], 1)
+        self.assertIn("hostmcp", body["mcp"]["mcpServers"])
+        self.assertGreaterEqual(len(body["http"]["endpoints"]), 5)
+
+    def test_agent_connect_package_returns_zip(self):
+        response = self.client.get("/config/agent/package")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "application/zip")
+        self.assertTrue(response.content.startswith(b"PK"))
+
     def test_tool_route_executes_with_arguments_and_dry_run(self):
         executor = Mock()
         executor.execute_tool_sync.return_value = {"ok": True, "tool_name": "rhino_create_box", "data": {"x": 1}}

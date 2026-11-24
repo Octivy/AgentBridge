@@ -211,15 +211,44 @@
   <!-- Agent 接入 -->
   <main id="agents" class="hidden">
     <section>
-      <h2>Agent 接入（MCP）</h2>
-      <div id="mcp-servers" class="card-meta">加载中…</div>
-      <div class="card-actions" style="margin:10px 0">
-        <button id="btn-write-codex">写入 Codex 配置（~/.codex/config.toml）</button>
-        <button id="btn-write-claude" class="ghost">写入 .mcp.json（项目根目录）</button>
+      <h2>连接状态</h2>
+      <div id="agent-status" class="card-meta">加载中…</div>
+    </section>
+
+    <section>
+      <h2>方式一：DeepSeek Harness（已内置，无需配置）</h2>
+      <div class="card">
+        <div class="card-meta">装好本插件即自动接入：3 个 MCP 服务器随 DSH 启动，Agent 直接使用
+          <code>mcp__hostmcp__*</code>、<code>mcp__cadmcp__*</code>、<code>mcp__agentbridge__*</code> 工具。
+          新开一个 DSH 会话即可看到。</div>
       </div>
-      <div class="error-line" id="mcp-status"></div>
-      <h2 style="margin-top:14px">Codex 配置预览（写入内容）</h2>
-      <pre class="code" id="mcp-preview">加载中…</pre>
+    </section>
+
+    <section>
+      <h2 style="display:flex;justify-content:space-between;align-items:center">
+        <span>方式二：MCP 客户端（Codex / Claude / 数字伴飞等）</span>
+        <button type="button" class="sm ghost" id="btn-copy-mcp">复制配置</button>
+      </h2>
+      <div class="card-meta" style="margin-bottom:8px">把下面的 <code>mcpServers</code> 合并到你 Agent 的 MCP 配置里
+        （Codex：<code>~/.codex/config.toml</code>；Claude：<code>.mcp.json</code>；其他 Agent 按其 MCP 设置）。</div>
+      <pre class="code" id="agent-mcp-json">加载中…</pre>
+    </section>
+
+    <section>
+      <h2 style="display:flex;justify-content:space-between;align-items:center">
+        <span>方式三：HTTP API（任意 Agent，最通用）</span>
+        <button type="button" class="sm ghost" id="btn-copy-http">复制端点</button>
+      </h2>
+      <div class="card-meta" style="margin-bottom:8px">任何能发 HTTP 的 Agent 都能用（不需要 MCP）。先启动本面板，再调用：</div>
+      <pre class="code" id="agent-http">加载中…</pre>
+    </section>
+
+    <section>
+      <h2>导出接入包</h2>
+      <div class="card-actions">
+        <button id="btn-agent-pack">下载接入包（ZIP：MCP 配置 + 接入说明 + 测试脚本）</button>
+      </div>
+      <div class="card-meta" style="margin-top:8px">把这个包交给单位 Agent 的同事，他们按 README 就能自己接上，不用再问你。</div>
     </section>
   </main>
 
@@ -635,42 +664,42 @@ agentbridge : &lt;插件内置 python&gt; -m control_mcp</pre></div>
       try { await api("/config/connection/events/clear", { method: "POST" }); loadHeal(); } catch (err) { alert("清空失败：" + err.message); }
     });
 
-    // ---------- Agent 接入（MCP） ----------
-    async function loadMcpPanel() {
+    // ---------- Agent 接入（三种方式 + 接入包） ----------
+    async function loadAgentPanel() {
       try {
-        const [preview, status] = await Promise.all([
-          api("/config/mcp/preview"),
-          api("/config/mcp/status"),
-        ]);
-        const names = preview.servers.map((s) => `<span class="chip">${esc(s.name)}</span>`).join("") || "（无）";
-        $("mcp-servers").innerHTML =
-          `可生成服务器：${names}<br>` +
-          `Codex 配置路径：<code>${esc(status.codex_path)}</code><br>` +
-          `Codex 已注册：${status.codex_servers.length ? status.codex_servers.map((s) => `<span class="chip">${esc(s)}</span>`).join("") : "无"}`;
-        $("mcp-preview").textContent = preview.codex_toml || "（无）";
-        $("mcp-status").textContent = "";
+        const info = await api("/config/agent/info");
+        const st = info.status || {};
+        $("agent-status").innerHTML =
+          `软件宿主：<b>${st.hosts_connected || 0}/${st.hosts_total || 0}</b> 已连接` +
+          ` · 工具：<b>${st.tools || 0}</b> 个` +
+          ` · HTTP API：<b>就绪</b>` +
+          ` · DeepSeek Harness：<b>本插件已安装</b>`;
+        $("agent-mcp-json").textContent = info.mcp_json || "（无）";
+        const base = location.origin;
+        const lines = (info.http && info.http.endpoints || [])
+          .map((e) => `${e.method.padEnd(5)} ${base}${e.path}  # ${e.desc}`);
+        $("agent-http").textContent =
+          lines.join("\n") +
+          `\n\n示例：POST ${base}/tool\n{"tool_name": "autocad_get_drawing_snapshot", "arguments": {}}`;
       } catch (err) {
-        $("mcp-servers").textContent = "加载失败：" + err.message;
+        $("agent-status").textContent = "加载失败：" + err.message;
       }
     }
 
-    async function writeMcp(kind) {
-      const btn = kind === "codex" ? $("btn-write-codex") : $("btn-write-claude");
-      btn.disabled = true;
-      $("mcp-status").textContent = "正在写入…";
+    async function copyText(text, btn) {
       try {
-        const result = await api(`/config/mcp/${kind}`, { method: "POST", body: "{}" });
-        $("mcp-status").textContent = `已写入：${result.path}（${result.servers.join(", ")}）`;
+        await navigator.clipboard.writeText(text);
+        const old = btn.textContent;
+        btn.textContent = "已复制";
+        setTimeout(() => { btn.textContent = old; }, 1500);
       } catch (err) {
-        $("mcp-status").textContent = "写入失败：" + err.message;
-      } finally {
-        btn.disabled = false;
-        loadMcpPanel();
+        alert("复制失败：" + err.message);
       }
     }
 
-    $("btn-write-codex").addEventListener("click", () => writeMcp("codex"));
-    $("btn-write-claude").addEventListener("click", () => writeMcp("claude"));
+    $("btn-copy-mcp").addEventListener("click", () => copyText($("agent-mcp-json").textContent, $("btn-copy-mcp")));
+    $("btn-copy-http").addEventListener("click", () => copyText($("agent-http").textContent, $("btn-copy-http")));
+    $("btn-agent-pack").addEventListener("click", () => { window.location.href = "/config/agent/package"; });
 
     // ---------- 路由（对应桌面侧边栏） ----------
     function route() {
@@ -684,7 +713,7 @@ agentbridge : &lt;插件内置 python&gt; -m control_mcp</pre></div>
       if (section === "overview") { loadOverview(); loadAgentTest(); }
       if (section === "software") { loadConfigs(); loadSoftwareStatus(); startSoftAutoRefresh(); } else { stopSoftAutoRefresh(); }
       if (section === "monitor") { loadHosts(); loadHeal(); }
-      if (section === "agents") loadMcpPanel();
+      if (section === "agents") loadAgentPanel();
     }
 
     document.querySelectorAll("nav.tabs button").forEach((b) => {
