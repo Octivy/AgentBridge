@@ -230,7 +230,10 @@
         <button type="button" class="sm ghost" id="btn-copy-mcp">复制配置</button>
       </h2>
       <div class="card-meta" style="margin-bottom:8px">把下面的 <code>mcpServers</code> 合并到你 Agent 的 MCP 配置里
-        （Codex：<code>~/.codex/config.toml</code>；Claude：<code>.mcp.json</code>；其他 Agent 按其 MCP 设置）。</div>
+        （Codex：<code>~/.codex/config.toml</code>；Claude：<code>.mcp.json</code>；其他 Agent 按其 MCP 设置）。
+        <b>数字伴飞（Cyber Copilot / Hermes）</b>的写法是 <code>~/.hermes/config.yaml</code> 下的
+        <code>mcp_servers</code>，键名由 <code>mcpServers</code> 改为 <code>mcp_servers</code> 即可；
+        详见插件文档 <code>docs/数字伴飞接入说明.md</code>，或从下方接入包里的 <code>hermes-mcp.yaml</code> 直接粘贴。</div>
       <pre class="code" id="agent-mcp-json">加载中…</pre>
     </section>
 

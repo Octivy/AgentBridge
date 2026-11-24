@@ -230,6 +230,21 @@ _AGENT_HTTP_ENDPOINTS = [
 ]
 
 
+def _hermes_mcp_yaml(mcp: dict) -> str:
+    """把 mcpServers 配置转成 Hermes（数字伴飞）的 ~/.hermes/config.yaml 片段。"""
+
+    lines = ["mcp_servers:"]
+    for name, spec in (mcp.get("mcpServers") or {}).items():
+        lines.append(f"  {name}:")
+        lines.append(f'    command: "{spec["command"]}"')
+        lines.append(f"    args: {json.dumps(spec.get('args') or [], ensure_ascii=False)}")
+        if spec.get("cwd"):
+            lines.append(f'    cwd: "{spec["cwd"]}"')
+        lines.append("    connect_timeout: 60")
+        lines.append("    timeout: 120")
+    return "\n".join(lines) + "\n"
+
+
 @router.get("/config/agent/info")
 def agent_connect_info() -> dict:
     """Agent 接入信息：MCP 配置、HTTP API、连接状态汇总（面板「Agent 接入」用）。"""
@@ -304,6 +319,7 @@ try {
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("mcp-config.json", mcp_json)
+        zf.writestr("hermes-mcp.yaml", _hermes_mcp_yaml(mcp))
         zf.writestr("README.md", readme)
         zf.writestr("test-agent.ps1", test_ps1)
     buffer.seek(0)
